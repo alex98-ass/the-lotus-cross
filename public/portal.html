@@ -48,8 +48,31 @@ a{color:var(--gold-deep);text-decoration:none}
 .side-btn.active{background:linear-gradient(135deg,var(--gold-light),#f3e7c4);color:var(--gold-deep);font-weight:600}
 .side-btn .ico{font-size:1.15rem}
 .sidebar .spacer{flex:1}
-.sidebar .logout{display:flex;align-items:center;gap:.6rem;background:none;border:none;color:var(--muted);padding:.85rem 1rem;border-radius:12px;font-size:.9rem;cursor:pointer;font-family:'Inter',sans-serif;transition:all .25s}
+.sidebar .logout{display:flex;align-items:center;gap:.6rem;background:none;border:none;color:var(--muted);padding:.85rem 1rem;border-radius:12px;font-size:.9rem;cursor:pointer;width:100%}
 .sidebar .logout:hover{background:var(--red-bg);color:var(--red)}
+.sidebar .logout .ico{font-size:1.2rem}
+
+/* ===== MAIN CONTENT ===== */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:1.2rem 1.6rem;border-bottom:1px solid var(--line)}
+.topbar .mobile-menu-btn{display:none;background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--ink)}
+.topbar .top-right{display:flex;align-items:center;gap:1rem}
+.topbar .top-rank{display:flex;align-items:center;gap:.5rem;background:var(--green-bg);border:1px solid #cfe4d2;border-radius:999px;padding:.4rem 1rem;font-size:.82rem;font-weight:600;color:var(--gold-deep)}
+.topbar .top-xp{display:flex;align-items:center;gap:1.2rem;font-size:1.1rem;font-weight:700;color:var(--gold-deep);font-family:'Cormorant Garamond',serif}
+.content{flex:1;overflow-y:auto;padding:2.2rem 2.6rem 3.5rem}
+
+@media(max-width:768px){
+  .app{flex-direction:column}
+  .sidebar{flex-direction:row;width:100%;height:auto;padding:.8rem;border-right:none;border-bottom:1px solid var(--line);gap:.4rem}
+  .sidebar .brand{display:none}
+  .sidebar .side-btn{flex-direction:column;gap:.2rem;font-size:.65rem;padding:.5rem;border-radius:10px;flex:1}
+  .sidebar .side-btn .ico{font-size:1.1rem}
+  .sidebar .spacer{display:none}
+  .sidebar .logout{flex:none;padding:.5rem}
+  .sidebar .logout .ico{font-size:1.2rem}
+  .sidebar .logout .txt{display:none}
+  .main{padding-top:1rem}
+}
 
 .main{flex:1;overflow-y:auto;padding:2.5rem 3rem}
 .view{display:none}
