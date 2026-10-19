@@ -62,7 +62,19 @@ async function initDb() {
       body TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT now()
     );
+    CREATE TABLE IF NOT EXISTS tasks (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      category TEXT DEFAULT 'daily',
+      xp INTEGER DEFAULT 10,
+      active BOOLEAN DEFAULT true,
+      sort_order INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
   `);
+  // Migration: add channel column to messages (for topic channels)
+  await pool.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS channel TEXT DEFAULT 'general'");
   // Seed default admin if none exists
   const res = await pool.query("SELECT COUNT(*)::int AS c FROM users WHERE role='admin'");
   if (res.rows[0].c === 0) {
@@ -75,6 +87,21 @@ async function initDb() {
     console.log('  Password: admin123');
     console.log('  CHANGE THIS AFTER FIRST LOGIN!');
     console.log('==============================================');
+  }
+  // Seed default tasks if none exist
+  const tc = await pool.query("SELECT COUNT(*)::int AS c FROM tasks");
+  if (tc.rows[0].c === 0) {
+    const defaults = [
+      ['Meditation (10 minutes)', 'Sit in stillness. Breathe. Observe your mind without judgment. This is the medicine for a restless mind.', 'daily', 10, 0],
+      ['Act of Kindness', 'Do one deliberate act of kindness for another person. No matter how small.', 'daily', 10, 1],
+      ['Scripture Reading', 'Read a passage from any sacred text (Bible, Dhammapada, Bhagavad Gita) and reflect on its meaning for your life.', 'daily', 10, 2],
+      ['Mindful Action', 'Perform one ordinary task (washing dishes, walking, eating) with full mindful awareness.', 'daily', 10, 3],
+      ['Self-Reflection', 'At day\u2019s end, reflect: what did I do well? What could I do better? What karma did I create?', 'daily', 10, 4]
+    ];
+    for (const d of defaults) {
+      await pool.query("INSERT INTO tasks (title, description, category, xp, sort_order) VALUES ($1,$2,$3,$4,$5)", d);
+    }
+    console.log('  Default tasks seeded.');
   }
 }
 
@@ -230,24 +257,26 @@ app.get('/api/member/dashboard', requireAuth, async (req, res) => {
   const u = req.user;
   const today = new Date().toISOString().slice(0, 10);
   const done = await pool.query("SELECT task_id FROM tasks_done WHERE user_id=$1 AND date=$2", [u.id, today]);
+  const tasks = (await pool.query("SELECT id, title, description, category, xp FROM tasks WHERE active=true ORDER BY sort_order, id")).rows;
   res.json({
     user: { id: u.id, name: u.name, email: u.email, country: u.country, age: u.age, tradition: u.tradition,
       rank: u.rank, xp: u.xp, tasks_completed: u.tasks_completed, streak: u.streak, enrolled_at: u.enrolled_at },
-    ranks: RANKS, doneToday: done.rows.map(r => r.task_id), today
+    ranks: RANKS, tasks: tasks, doneToday: done.rows.map(r => r.task_id), today
   });
 });
 
 app.post('/api/member/task', requireAuth, async (req, res) => {
   try {
-    const { taskId } = req.body;
+    const taskId = String(req.body.taskId);
     const u = req.user;
     const today = new Date().toISOString().slice(0, 10);
-    const validTasks = ['meditate', 'kindness', 'scripture', 'mindful', 'reflect'];
-    if (!validTasks.includes(taskId)) return res.status(400).json({ error: 'Invalid task' });
+    const task = (await pool.query("SELECT id, xp FROM tasks WHERE id=$1 AND active=true", [parseInt(taskId, 10)])).rows[0];
+    if (!task) return res.status(400).json({ error: 'Invalid task' });
+    const xp = task.xp || 10;
     const existing = await pool.query("SELECT * FROM tasks_done WHERE user_id=$1 AND task_id=$2 AND date=$3", [u.id, taskId, today]);
     if (existing.rows.length > 0) {
       await pool.query("DELETE FROM tasks_done WHERE user_id=$1 AND task_id=$2 AND date=$3", [u.id, taskId, today]);
-      await pool.query("UPDATE users SET tasks_completed = GREATEST(0, tasks_completed - 1), xp = GREATEST(0, xp - 10) WHERE id=$1", [u.id]);
+      await pool.query("UPDATE users SET tasks_completed = GREATEST(0, tasks_completed - 1), xp = GREATEST(0, xp - $1) WHERE id=$2", [xp, u.id]);
     } else {
       await pool.query("INSERT INTO tasks_done (user_id, task_id, date) VALUES ($1,$2,$3)", [u.id, taskId, today]);
       let streak = u.streak || 0;
@@ -255,7 +284,7 @@ app.post('/api/member/task', requireAuth, async (req, res) => {
         const y = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
         streak = (u.last_task_date === y) ? streak + 1 : 1;
       }
-      await pool.query("UPDATE users SET tasks_completed = tasks_completed + 1, xp = xp + 10, streak=$1, last_task_date=$2 WHERE id=$3", [streak, today, u.id]);
+      await pool.query("UPDATE users SET tasks_completed = tasks_completed + 1, xp = xp + $1, streak=$2, last_task_date=$3 WHERE id=$4", [xp, streak, today, u.id]);
     }
     const updated = (await pool.query("SELECT * FROM users WHERE id=$1", [u.id])).rows[0];
     const newRank = calcRank(updated.tasks_completed);
@@ -296,6 +325,62 @@ app.post('/api/admin/reject', requireAuth, requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ===== ADMIN: TASKS =====
+app.get('/api/admin/tasks', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const tasks = (await pool.query("SELECT * FROM tasks ORDER BY sort_order, id")).rows;
+    res.json({ tasks });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/tasks', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { title, description, category, xp } = req.body;
+    if (!title || !title.trim()) return res.status(400).json({ error: 'Title required' });
+    const info = await pool.query(
+      "INSERT INTO tasks (title, description, category, xp) VALUES ($1,$2,$3,$4) RETURNING *",
+      [title.trim(), description || '', category || 'daily', parseInt(xp, 10) || 10]
+    );
+    res.json({ ok: true, task: info.rows[0] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/admin/tasks/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const t = (await pool.query("SELECT * FROM tasks WHERE id=$1", [id])).rows[0];
+    if (!t) return res.status(404).json({ error: 'Task not found' });
+    const { title, description, category, xp, active } = req.body;
+    await pool.query(
+      "UPDATE tasks SET title=$1, description=$2, category=$3, xp=$4, active=$5 WHERE id=$6",
+      [title != null ? title : t.title, description != null ? description : t.description, category != null ? category : t.category, xp != null ? parseInt(xp, 10) : t.xp, active != null ? active : t.active, id]
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/admin/tasks/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    await pool.query("DELETE FROM tasks WHERE id=$1", [id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== ADMIN: RANK =====
+app.post('/api/admin/set-rank', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { userId, rank } = req.body;
+    const r = parseInt(rank, 10);
+    if (isNaN(r) || r < 0 || r > 4) return res.status(400).json({ error: 'Invalid rank (0-4)' });
+    const user = (await pool.query("SELECT * FROM users WHERE id=$1", [userId])).rows[0];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const thresholds = [0, 7, 30, 90, 200];
+    await pool.query("UPDATE users SET rank=$1, tasks_completed=$2 WHERE id=$3", [r, thresholds[r], user.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/set-password', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password || password.length < 6) return res.status(400).json({ error: 'Valid email and password (min 6 chars) required' });
@@ -334,11 +419,13 @@ app.get('/api/messages', requireAuth, async (req, res) => {
         [req.user.id, withId]
       )).rows;
     } else {
+      const channel = (req.query.channel || 'general').toString();
       rows = (await pool.query(
         `SELECT m.id, m.sender_id, m.body, m.created_at, u.name AS sender_name
          FROM messages m JOIN users u ON u.id = m.sender_id
-         WHERE m.receiver_id IS NULL
-         ORDER BY m.created_at DESC LIMIT 200`
+         WHERE m.receiver_id IS NULL AND m.channel=$1
+         ORDER BY m.created_at DESC LIMIT 200`,
+        [channel]
       )).rows;
       rows.reverse();
     }
@@ -349,7 +436,7 @@ app.get('/api/messages', requireAuth, async (req, res) => {
 // Send a message (receiverId omitted = global community chat)
 app.post('/api/messages', requireAuth, async (req, res) => {
   try {
-    const { receiverId, body } = req.body;
+    const { receiverId, body, channel } = req.body;
     if (!body || !body.trim()) return res.status(400).json({ error: 'Message cannot be empty' });
     if (body.trim().length > 2000) return res.status(400).json({ error: 'Message too long (max 2000 characters)' });
     let rid = null;
@@ -358,8 +445,9 @@ app.post('/api/messages', requireAuth, async (req, res) => {
       const target = (await pool.query("SELECT id FROM users WHERE id=$1 AND status='approved'", [rid])).rows[0];
       if (!target) return res.status(404).json({ error: 'Member not found' });
     }
-    await pool.query("INSERT INTO messages (sender_id, receiver_id, body) VALUES ($1,$2,$3)",
-      [req.user.id, rid, body.trim()]);
+    const ch = rid ? null : ((channel || 'general').toString());
+    await pool.query("INSERT INTO messages (sender_id, receiver_id, body, channel) VALUES ($1,$2,$3,$4)",
+      [req.user.id, rid, body.trim(), ch]);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
