@@ -92,6 +92,47 @@ footer{background:var(--bg2);padding:2rem;text-align:center;border-top:1px solid
 footer p{font-size:.8rem;color:var(--muted)}
 footer a{color:var(--gold);text-decoration:none}
 @media(max-width:768px){nav ul{display:none}.welcome h1{font-size:1.8rem}.stats-grid{grid-template-columns:repeat(2,1fr)}.tab-btn{padding:.8rem .8rem;font-size:.75rem}}
+/* ===== Community Chat & Messaging ===== */
+.chat-layout{display:flex;gap:1.5rem;align-items:stretch}
+.chat-sidebar{width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:.4rem}
+.chat-sidebar-label{font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);margin-top:1rem;margin-bottom:.2rem}
+.chat-room-btn{background:var(--card);border:1px solid var(--border);color:var(--text);padding:.8rem 1rem;text-align:left;border-radius:2px;cursor:pointer;font-family:'Inter',sans-serif;font-size:.85rem;transition:all .3s;width:100%}
+.chat-room-btn:hover{border-color:var(--gold)}
+.chat-room-btn.active{background:rgba(201,162,39,.12);border-color:var(--gold);color:var(--gold)}
+.chat-partner{display:flex;align-items:center;gap:.6rem;padding:.6rem .8rem;border:1px solid transparent;border-radius:2px;cursor:pointer;transition:all .3s;width:100%;background:none;text-align:left;font-family:'Inter',sans-serif}
+.chat-partner:hover{background:var(--card)}
+.chat-partner.active{border-color:var(--border);background:var(--card)}
+.chat-partner .avatar{width:32px;height:32px;border-radius:50%;background:rgba(201,162,39,.2);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;font-weight:600}
+.chat-partner .p-name{color:var(--text);font-size:.85rem}
+.chat-partner .p-preview{color:var(--muted);font-size:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.chat-find-btn{background:transparent;border:1px solid var(--border);color:var(--gold);padding:.7rem;border-radius:2px;cursor:pointer;font-size:.8rem;text-transform:uppercase;letter-spacing:1px;margin-top:.5rem;font-family:'Inter',sans-serif;transition:all .3s}
+.chat-find-btn:hover{border-color:var(--gold)}
+.chat-main{flex:1;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border)}
+.chat-header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:var(--gold)}
+.chat-messages{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:.8rem;max-height:55vh;min-height:300px}
+.msg-row{display:flex}
+.msg-row.mine{justify-content:flex-end}
+.msg-bubble{max-width:70%;padding:.7rem 1rem;border-radius:3px;font-size:.9rem;line-height:1.5;background:rgba(255,255,255,.04);border:1px solid var(--border)}
+.msg-row.mine .msg-bubble{background:rgba(201,162,39,.12);border-color:rgba(201,162,39,.3)}
+.msg-meta{font-size:.7rem;color:var(--muted);margin-bottom:.2rem}
+.msg-row.mine .msg-meta{text-align:right}
+.msg-body{color:var(--text);word-wrap:break-word;white-space:pre-wrap}
+.chat-input-row{display:flex;gap:.8rem;padding:1rem;border-top:1px solid var(--border)}
+.chat-input-row input{flex:1;background:rgba(0,0,0,.3);border:1px solid var(--border);color:var(--text);padding:.8rem 1rem;font-family:'Inter',sans-serif;font-size:.9rem;border-radius:2px}
+.chat-input-row input:focus{outline:none;border-color:var(--gold)}
+.chat-input-row button{background:var(--gold);color:#000;border:none;padding:0 1.5rem;border-radius:2px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:1px}
+.chat-input-row button:hover{background:var(--gold-light)}
+.directory-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:2rem}
+.directory-box{background:var(--bg2);border:1px solid var(--border);width:100%;max-width:560px;max-height:80vh;overflow-y:auto;padding:2rem;border-radius:4px}
+.directory-box h3{font-family:'Cormorant Garamond',serif;font-size:1.6rem;color:var(--gold);margin-bottom:1rem}
+.directory-box input{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--border);color:var(--text);padding:.8rem 1rem;margin-bottom:1rem;font-family:'Inter',sans-serif;border-radius:2px}
+.directory-item{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.9rem 0;border-bottom:1px solid var(--border)}
+.dir-info .d-name{color:var(--text);font-weight:500}
+.dir-info .d-sub{color:var(--muted);font-size:.8rem}
+.dir-msg-btn{background:transparent;border:1px solid var(--gold);color:var(--gold);padding:.4rem 1rem;border-radius:2px;cursor:pointer;font-size:.75rem;font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
+.dir-msg-btn:hover{background:rgba(201,162,39,.1)}
+.chat-empty{color:var(--muted);text-align:center;padding:2rem;font-style:italic;font-family:'Cormorant Garamond',serif}
+@media(max-width:768px){.chat-layout{flex-direction:column}.chat-sidebar{width:100%}.chat-messages{max-height:40vh}}
 </style>
 </head>
 <body>
@@ -104,6 +145,7 @@ footer a{color:var(--gold);text-decoration:none}
     <li><a data-tab="ranks">Ranks</a></li>
     <li><a data-tab="guide">Guide</a></li>
     <li><a data-tab="community">Community</a></li>
+    <li><a data-tab="messages">Messages</a></li>
     <li><a data-tab="support">Support Us</a></li>
   </ul>
   <div class="nav-right">
@@ -130,6 +172,7 @@ footer a{color:var(--gold);text-decoration:none}
     <button class="tab-btn" data-tab="ranks">Ranks</button>
     <button class="tab-btn" data-tab="guide">Guide</button>
     <button class="tab-btn" data-tab="community">Community</button>
+    <button class="tab-btn" data-tab="messages">Messages</button>
     <button class="tab-btn" data-tab="support">Support Us</button>
   </div>
 
@@ -289,6 +332,33 @@ footer a{color:var(--gold);text-decoration:none}
       </div>
     </div>
   </div>
+
+  <div class="tab-content" id="tab-messages">
+    <div class="chat-layout">
+      <div class="chat-sidebar">
+        <button class="chat-room-btn active" data-room="general" onclick="openGeneralChat()">💬 Community Chat</button>
+        <div class="chat-sidebar-label">Direct Messages</div>
+        <div id="dmPartners"></div>
+        <button class="chat-find-btn" onclick="showDirectory()">🔍 Find Members</button>
+      </div>
+      <div class="chat-main">
+        <div class="chat-header" id="chatHeader">💬 Community Chat</div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-row">
+          <input id="chatInput" placeholder="Write a message…" onkeydown="if(event.key==='Enter')sendChat()">
+          <button onclick="sendChat()">Send</button>
+        </div>
+      </div>
+    </div>
+    <div class="directory-overlay" id="directoryOverlay" style="display:none" onclick="if(event.target===this)hideDirectory()">
+      <div class="directory-box">
+        <h3>✦ Find Members</h3>
+        <input id="directorySearch" placeholder="Search by name, country, tradition or rank…" oninput="renderDirectory(this.value)">
+        <div id="directoryList"></div>
+        <button class="chat-find-btn" onclick="hideDirectory()" style="margin-top:1rem;width:100%">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <footer>
@@ -390,12 +460,37 @@ function renderRanks(currentRank){
   table.innerHTML=html;
 }
 
+// ===== Community Chat & Messaging =====
+var chatMode='general', chatWithId=null, chatWithName=null, chatPollTimer=null, allMembers=[];
+function escapeHtml(s){if(s==null)return '';return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function rankName(r){return RANKS[r]?RANKS[r].name:'Seeker';}
+function formatTime(iso){var d=new Date(iso);return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
+
+function openGeneralChat(){chatMode='general';chatWithId=null;chatWithName=null;document.querySelectorAll('.chat-room-btn').forEach(function(b){b.classList.toggle('active',b.dataset.room==='general');});loadPartners();loadGeneralChat();}
+function loadGeneralChat(){api('/api/messages').then(function(r){if(!r.ok)return;renderChat(r.d.messages,r.d.me,'💬 Community Chat');});}
+function renderChat(messages,me,header){document.getElementById('chatHeader').textContent=header;var box=document.getElementById('chatMessages');if(!messages.length){box.innerHTML='<div class="chat-empty">No messages yet. Start the conversation.</div>';return;}box.innerHTML='';messages.forEach(function(m){var row=document.createElement('div');row.className='msg-row'+(m.sender_id===me?' mine':'');var b=document.createElement('div');b.className='msg-bubble';var meta=document.createElement('div');meta.className='msg-meta';meta.textContent=m.sender_name+' · '+formatTime(m.created_at);var body=document.createElement('div');body.className='msg-body';body.textContent=m.body;b.appendChild(meta);b.appendChild(body);row.appendChild(b);box.appendChild(row);});box.scrollTop=box.scrollHeight;}
+
+function sendChat(){var input=document.getElementById('chatInput');var body=input.value.trim();if(!body)return;var payload={body:body};if(chatMode==='dm'&&chatWithId)payload.receiverId=chatWithId;api('/api/messages',{method:'POST',body:JSON.stringify(payload)}).then(function(r){if(r.ok){input.value='';if(chatMode==='general')loadGeneralChat();else loadDM();}});}
+
+function loadPartners(){api('/api/messages/partners').then(function(r){if(!r.ok)return;var list=document.getElementById('dmPartners');if(!r.d.partners.length){list.innerHTML='<div style="color:var(--muted);font-size:.8rem;padding:.5rem">No conversations yet</div>';return;}list.innerHTML='';r.d.partners.forEach(function(p){var btn=document.createElement('button');btn.className='chat-partner'+(chatMode==='dm'&&chatWithId===p.id?' active':'');var av=document.createElement('div');av.className='avatar';av.textContent=(p.name||'?').charAt(0).toUpperCase();var info=document.createElement('div');var nm=document.createElement('div');nm.className='p-name';nm.textContent=p.name;var pv=document.createElement('div');pv.className='p-preview';pv.textContent=p.last_msg||'';info.appendChild(nm);info.appendChild(pv);btn.appendChild(av);btn.appendChild(info);btn.onclick=function(){openDM(p.id,p.name);};list.appendChild(btn);});});}
+function openDM(id,name){chatMode='dm';chatWithId=id;chatWithName=name;document.querySelectorAll('.chat-room-btn').forEach(function(b){b.classList.remove('active');});loadPartners();loadDM();}
+function loadDM(){if(!chatWithId)return;api('/api/messages?with='+chatWithId).then(function(r){if(!r.ok)return;renderChat(r.d.messages,r.d.me,'✉ '+chatWithName);});}
+
+function showDirectory(){document.getElementById('directoryOverlay').style.display='flex';document.getElementById('directorySearch').value='';loadDirectory();}
+function hideDirectory(){document.getElementById('directoryOverlay').style.display='none';}
+function loadDirectory(){api('/api/members').then(function(r){if(!r.ok)return;allMembers=r.d.members;renderDirectory('');});}
+function renderDirectory(q){var list=document.getElementById('directoryList');var ql=(q||'').toLowerCase();var filtered=allMembers.filter(function(m){return !ql||(m.name||'').toLowerCase().indexOf(ql)!==-1||(m.country||'').toLowerCase().indexOf(ql)!==-1||(m.tradition||'').toLowerCase().indexOf(ql)!==-1||rankName(m.rank).toLowerCase().indexOf(ql)!==-1;});if(!filtered.length){list.innerHTML='<div class="chat-empty">No members found</div>';return;}list.innerHTML='';filtered.forEach(function(m){var item=document.createElement('div');item.className='directory-item';var info=document.createElement('div');info.className='dir-info';var nm=document.createElement('div');nm.className='d-name';nm.textContent=m.name;var sub=document.createElement('div');sub.className='d-sub';sub.textContent=rankName(m.rank)+' · '+(m.country||'—')+(m.tradition?' · '+m.tradition:'');info.appendChild(nm);info.appendChild(sub);var btn=document.createElement('button');btn.className='dir-msg-btn';btn.textContent='Message';btn.onclick=function(){hideDirectory();openDM(m.id,m.name);};item.appendChild(info);item.appendChild(btn);list.appendChild(item);});}
+
+function startChatPolling(){stopChatPolling();chatPollTimer=setInterval(function(){if(chatMode==='general')loadGeneralChat();else loadDM();},4000);}
+function stopChatPolling(){if(chatPollTimer){clearInterval(chatPollTimer);chatPollTimer=null;}}
+
 function showTab(tabName){
   document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
   document.getElementById('tab-'+tabName).classList.add('active');
   document.querySelectorAll('.tab-btn').forEach(function(b){if(b.dataset.tab===tabName)b.classList.add('active');});
   document.querySelectorAll('#navTabs a').forEach(function(a){a.classList.remove('active');if(a.dataset.tab===tabName)a.classList.add('active');});
+  if(tabName==='messages'){loadPartners();loadGeneralChat();startChatPolling();}else{stopChatPolling();}
   window.scrollTo(0,0);
 }
 

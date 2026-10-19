@@ -55,6 +55,13 @@ async function initDb() {
       date TEXT NOT NULL,
       PRIMARY KEY (user_id, task_id, date)
     );
+    CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      sender_id INTEGER NOT NULL,
+      receiver_id INTEGER,
+      body TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
   `);
   // Seed default admin if none exists
   const res = await pool.query("SELECT COUNT(*)::int AS c FROM users WHERE role='admin'");
@@ -297,6 +304,86 @@ app.post('/api/set-password', async (req, res) => {
   const hash = bcrypt.hashSync(password, 10);
   await pool.query("UPDATE users SET password_hash=$1 WHERE id=$2", [hash, user.id]);
   res.json({ ok: true, message: 'Password set. You can now log in.' });
+});
+
+// ===== MESSAGING (community chat + direct messages) =====
+
+// Member directory: all approved members except self
+app.get('/api/members', requireAuth, async (req, res) => {
+  try {
+    const users = (await pool.query(
+      `SELECT id, name, country, age, tradition, rank, tasks_completed, streak, enrolled_at
+       FROM users WHERE status='approved' AND id != $1 ORDER BY name ASC`,
+      [req.user.id]
+    )).rows;
+    res.json({ members: users });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Get messages: ?with=<userId> = DM thread; otherwise global community chat
+app.get('/api/messages', requireAuth, async (req, res) => {
+  try {
+    const withId = req.query.with ? parseInt(req.query.with, 10) : null;
+    let rows;
+    if (withId) {
+      rows = (await pool.query(
+        `SELECT m.id, m.sender_id, m.body, m.created_at, u.name AS sender_name
+         FROM messages m JOIN users u ON u.id = m.sender_id
+         WHERE (m.sender_id=$1 AND m.receiver_id=$2) OR (m.sender_id=$2 AND m.receiver_id=$1)
+         ORDER BY m.created_at ASC LIMIT 300`,
+        [req.user.id, withId]
+      )).rows;
+    } else {
+      rows = (await pool.query(
+        `SELECT m.id, m.sender_id, m.body, m.created_at, u.name AS sender_name
+         FROM messages m JOIN users u ON u.id = m.sender_id
+         WHERE m.receiver_id IS NULL
+         ORDER BY m.created_at DESC LIMIT 200`
+      )).rows;
+      rows.reverse();
+    }
+    res.json({ messages: rows, me: req.user.id });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Send a message (receiverId omitted = global community chat)
+app.post('/api/messages', requireAuth, async (req, res) => {
+  try {
+    const { receiverId, body } = req.body;
+    if (!body || !body.trim()) return res.status(400).json({ error: 'Message cannot be empty' });
+    if (body.trim().length > 2000) return res.status(400).json({ error: 'Message too long (max 2000 characters)' });
+    let rid = null;
+    if (receiverId) {
+      rid = parseInt(receiverId, 10);
+      const target = (await pool.query("SELECT id FROM users WHERE id=$1 AND status='approved'", [rid])).rows[0];
+      if (!target) return res.status(404).json({ error: 'Member not found' });
+    }
+    await pool.query("INSERT INTO messages (sender_id, receiver_id, body) VALUES ($1,$2,$3)",
+      [req.user.id, rid, body.trim()]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// List DM conversation partners (people I've exchanged messages with)
+app.get('/api/messages/partners', requireAuth, async (req, res) => {
+  try {
+    const rows = (await pool.query(
+      `SELECT u.id, u.name, u.rank, u.country,
+              (SELECT m2.body FROM messages m2
+               WHERE (m2.sender_id=u.id AND m2.receiver_id=$1) OR (m2.sender_id=$1 AND m2.receiver_id=u.id)
+               ORDER BY m2.created_at DESC LIMIT 1) AS last_msg
+       FROM users u
+       WHERE u.id IN (
+         SELECT DISTINCT CASE WHEN sender_id=$1 THEN receiver_id ELSE sender_id END
+         FROM messages
+         WHERE (sender_id=$1 OR receiver_id=$1) AND receiver_id IS NOT NULL
+       )
+       ORDER BY (SELECT MAX(m2.created_at) FROM messages m2
+                 WHERE (m2.sender_id=u.id AND m2.receiver_id=$1) OR (m2.sender_id=$1 AND m2.receiver_id=u.id)) DESC`,
+      [req.user.id]
+    )).rows;
+    res.json({ partners: rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ===== START =====
