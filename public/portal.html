@@ -1,526 +1,453 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ro">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Lotus Cross — Member Portal</title>
+<title>The Lotus Cross — Portal</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap');
-:root{--bg:#0a0a0f;--bg2:#121119;--card:rgba(255,255,255,0.03);--gold:#c9a227;--gold-light:#e8c856;--purple:#7b6ba8;--text:#e8e6e3;--muted:#9b9b9b;--border:rgba(201,162,39,0.15);--green:#4a9d7f;--red:#c94a4a}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);line-height:1.7}
-nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center}
-nav .logo{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:600;color:var(--gold);letter-spacing:1px}
-nav ul{display:flex;gap:1.8rem;list-style:none}
-nav ul a{color:var(--muted);text-decoration:none;font-size:.8rem;text-transform:uppercase;letter-spacing:1.5px;transition:color .3s;cursor:pointer}
-nav ul a:hover,nav ul a.active{color:var(--gold)}
-nav .nav-right{display:flex;gap:1rem;align-items:center}
-nav .rank-badge{background:rgba(201,162,39,.15);border:1px solid var(--border);color:var(--gold);padding:.4rem 1rem;border-radius:2px;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:1px}
-nav .btn-logout{color:var(--muted);text-decoration:none;font-size:.8rem;cursor:pointer;background:none;border:none;font-family:inherit}
-nav .btn-logout:hover{color:var(--red)}
-.dashboard{padding:6rem 2rem 4rem;max-width:1200px;margin:0 auto}
-.welcome{text-align:center;margin-bottom:3rem}
-.welcome h1{font-family:'Cormorant Garamond',serif;font-size:2.5rem;font-weight:400;margin-bottom:.5rem;letter-spacing:1px}
-.welcome h1 .gold{color:var(--gold);font-style:italic}
-.welcome p{color:var(--muted);font-size:1.1rem;font-style:italic;font-family:'Cormorant Garamond',serif}
-.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);flex-wrap:wrap}
-.tab-btn{background:none;border:none;color:var(--muted);padding:1rem 1.5rem;font-size:.85rem;text-transform:uppercase;letter-spacing:1.5px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .3s;border-bottom:2px solid transparent;position:relative;bottom:-1px}
-.tab-btn:hover{color:var(--text)}
-.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
-.tab-content{display:none;padding-top:2.5rem}
-.tab-content.active{display:block;animation:fadeIn .4s ease}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.card{background:var(--card);border:1px solid var(--border);padding:2rem;margin-bottom:1.5rem}
-.card h2{font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:500;margin-bottom:.5rem;color:var(--text)}
-.card .card-label{font-size:.75rem;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:1rem}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;margin-bottom:2rem}
-.stat-card{background:var(--card);border:1px solid var(--border);padding:1.8rem 1.5rem;text-align:center}
-.stat-card .stat-icon{font-size:1.8rem;margin-bottom:.8rem;opacity:.8}
-.stat-card .stat-value{font-family:'Cormorant Garamond',serif;font-size:2.5rem;font-weight:600;color:var(--gold);line-height:1}
-.stat-card .stat-label{font-size:.75rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-top:.5rem}
-.progress-section{margin:2rem 0}
-.progress-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
-.progress-label span:first-child{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
-.progress-label span:last-child{font-size:.85rem;color:var(--gold);font-weight:600}
-.progress-bar{height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:3px;transition:width .8s ease}
-.rank-display{display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap}
-.rank-display .rank-icon{font-size:3rem;opacity:.9}
-.rank-display .rank-info h3{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:600;color:var(--gold);margin-bottom:.2rem}
-.rank-display .rank-info p{color:var(--muted);font-size:.9rem;margin:0}
-.task-item{background:var(--card);border:1px solid var(--border);padding:1.5rem;margin-bottom:1rem;display:flex;align-items:flex-start;gap:1.2rem;transition:all .3s;cursor:pointer}
-.task-item:hover{border-color:rgba(201,162,39,.3)}
-.task-item.completed{opacity:.5}
-.task-item.completed .task-title{text-decoration:line-through;color:var(--muted)}
-.task-checkbox{width:24px;height:24px;border:2px solid var(--border);border-radius:50%;flex-shrink:0;margin-top:.2rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .3s}
-.task-checkbox.checked{background:var(--green);border-color:var(--green)}
-.task-checkbox.checked::after{content:'✓';color:#fff;font-size:.8rem;font-weight:bold}
-.task-content{flex:1}
-.task-title{font-size:1rem;font-weight:500;color:var(--text);margin-bottom:.3rem}
-.task-desc{font-size:.85rem;color:var(--muted);line-height:1.6}
-.task-xp{font-size:.75rem;color:var(--gold);margin-top:.5rem;text-transform:uppercase;letter-spacing:1px}
-.instruction-block{margin-bottom:2rem}
-.instruction-block h3{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:500;color:var(--gold);margin-bottom:1rem}
-.instruction-block ol,.instruction-block ul{padding-left:1.5rem;color:var(--muted);line-height:2}
-.instruction-block li{margin-bottom:.5rem}
-.instruction-block strong{color:var(--text)}
-.ranks-table{width:100%;border-collapse:collapse}
-.ranks-table th,.ranks-table td{padding:1rem;border-bottom:1px solid var(--border);text-align:left}
-.ranks-table th{font-size:.75rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold)}
-.ranks-table td{color:var(--muted);font-size:.9rem}
-.ranks-table td:first-child{font-size:1.5rem;width:50px}
-.ranks-table tr.current-rank{background:rgba(201,162,39,.05)}
-.ranks-table tr.current-rank td{color:var(--text)}
-.donate-box{text-align:center;padding:3rem 2rem;background:linear-gradient(135deg,rgba(201,162,39,.06),rgba(123,107,168,.04));border:1px solid rgba(201,162,39,.25);margin-top:2rem}
-.donate-box h3{font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--gold);margin-bottom:1rem}
-.donate-box p{color:var(--muted);max-width:500px;margin:0 auto 2rem;line-height:1.8}
-.donate-options{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:1.5rem}
-.donate-btn{background:var(--gold);color:#000;padding:.8rem 1.8rem;border:none;border-radius:2px;font-size:.85rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:all .3s;font-family:'Inter',sans-serif}
-.donate-btn:hover{background:var(--gold-light);transform:translateY(-2px)}
-.donate-note{font-size:.8rem;color:var(--muted);margin-top:1rem}
-.community-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin-top:1.5rem}
-.community-card{background:var(--card);border:1px solid var(--border);padding:2rem;text-align:center}
-.community-card .icon{font-size:2rem;margin-bottom:1rem;opacity:.8}
-.community-card h3{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:500;margin-bottom:.8rem;color:var(--text)}
-.community-card p{font-size:.9rem;color:var(--muted);line-height:1.7}
-.no-member{text-align:center;padding:8rem 2rem}
-.no-member h1{font-family:'Cormorant Garamond',serif;font-size:2.5rem;color:var(--gold);margin-bottom:1rem}
-.no-member p{color:var(--muted);max-width:500px;margin:0 auto 2rem;line-height:1.8}
-.no-member .btn-primary{background:var(--gold);color:#000;padding:1rem 2.5rem;border-radius:2px;font-size:.9rem;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;text-decoration:none;display:inline-block;transition:all .3s}
-.no-member .btn-primary:hover{background:var(--gold-light);transform:translateY(-2px)}
-footer{background:var(--bg2);padding:2rem;text-align:center;border-top:1px solid var(--border);margin-top:4rem}
-footer p{font-size:.8rem;color:var(--muted)}
-footer a{color:var(--gold);text-decoration:none}
-@media(max-width:768px){nav ul{display:none}.welcome h1{font-size:1.8rem}.stats-grid{grid-template-columns:repeat(2,1fr)}.tab-btn{padding:.8rem .8rem;font-size:.75rem}}
-/* ===== Rank animation ===== */
-@keyframes rankGlow{0%,100%{filter:drop-shadow(0 0 2px rgba(201,162,39,.25))}50%{filter:drop-shadow(0 0 14px rgba(201,162,39,.55))}}
-.rank-display .rank-icon{animation:rankGlow 3s ease-in-out infinite}
-.stat-value{transition:all .6s ease}
-nav .rank-badge{transition:all .5s ease}
-@keyframes popIn{0%{transform:scale(.7);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
-.rank-display .rank-info h3{animation:popIn .5s ease}
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* ===== Community Chat & Messaging ===== */
-.chat-layout{display:flex;gap:1.5rem;align-items:stretch}
-.chat-sidebar{width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:.4rem}
-.chat-sidebar-label{font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);margin-top:1rem;margin-bottom:.2rem}
-.chat-room-btn{background:var(--card);border:1px solid var(--border);color:var(--text);padding:.8rem 1rem;text-align:left;border-radius:2px;cursor:pointer;font-family:'Inter',sans-serif;font-size:.85rem;transition:all .3s;width:100%}
-.chat-room-btn:hover{border-color:var(--gold)}
-.chat-room-btn.active{background:rgba(201,162,39,.12);border-color:var(--gold);color:var(--gold)}
-.chat-partner{display:flex;align-items:center;gap:.6rem;padding:.6rem .8rem;border:1px solid transparent;border-radius:2px;cursor:pointer;transition:all .3s;width:100%;background:none;text-align:left;font-family:'Inter',sans-serif}
-.chat-partner:hover{background:var(--card)}
-.chat-partner.active{border-color:var(--border);background:var(--card)}
-.chat-partner .avatar{width:32px;height:32px;border-radius:50%;background:rgba(201,162,39,.2);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;font-weight:600}
-.chat-partner .p-name{color:var(--text);font-size:.85rem}
-.chat-partner .p-preview{color:var(--muted);font-size:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
-.chat-find-btn{background:transparent;border:1px solid var(--border);color:var(--gold);padding:.7rem;border-radius:2px;cursor:pointer;font-size:.8rem;text-transform:uppercase;letter-spacing:1px;margin-top:.5rem;font-family:'Inter',sans-serif;transition:all .3s}
-.chat-find-btn:hover{border-color:var(--gold)}
-.chat-main{flex:1;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border)}
-.chat-header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:var(--gold)}
-.chat-messages{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:.8rem;max-height:55vh;min-height:300px}
+:root{
+  --bg:#faf8f4;
+  --card:#ffffff;
+  --ink:#221f1a;
+  --muted:#6f6a60;
+  --gold:#a8842a;
+  --gold-deep:#8a6a1f;
+  --gold-light:#e9d9a8;
+  --line:#ece6db;
+  --green:#2f6b3a;
+  --green-bg:#f0f7f1;
+  --red:#b3402e;
+  --red-bg:#fdf0ee;
+  --shadow:0 10px 40px rgba(60,45,10,0.06);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+
+/* ===== LOGIN SCREEN ===== */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;background:radial-gradient(ellipse at 50% 0%,rgba(201,162,39,.08) 0%,transparent 60%)}
+.login-card{width:100%;max-width:400px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:3rem 2.5rem;box-shadow:var(--shadow);text-align:center}
+.login-logo{font-family:'Cormorant Garamond',serif;font-size:1.9rem;font-weight:600;color:var(--ink);margin-bottom:.3rem}
+.login-logo em{color:var(--gold);font-style:normal}
+.login-sub{color:var(--muted);font-size:.95rem;margin-bottom:2.2rem}
+.field{margin-bottom:1.2rem;text-align:left}
+.field label{display:block;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--gold-deep);margin-bottom:.45rem}
+.field input{width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;padding:.9rem 1.1rem;font-family:'Inter',sans-serif;font-size:1rem;color:var(--ink);transition:border-color .3s,box-shadow .3s}
+.field input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(168,132,42,.12)}
+.btn{width:100%;background:var(--ink);color:#fff;border:none;border-radius:999px;padding:1rem;font-size:1rem;font-weight:600;cursor:pointer;transition:all .3s;font-family:'Inter',sans-serif}
+.btn:hover{background:var(--gold-deep);transform:translateY(-2px)}
+.btn-ghost{background:transparent;color:var(--gold-deep);border:1px solid var(--line);margin-top:.8rem}
+.btn-ghost:hover{background:var(--bg);transform:none}
+.msg{display:none;padding:.9rem;border-radius:10px;margin-bottom:1.2rem;font-size:.88rem;text-align:center}
+.msg.error{display:block;background:var(--red-bg);border:1px solid #f0d2cc;color:var(--red)}
+.msg.success{display:block;background:var(--green-bg);border:1px solid #cfe4d2;color:var(--green)}
+.back-link{display:block;margin-top:1.4rem;color:var(--muted);text-decoration:none;font-size:.85rem}
+.back-link:hover{color:var(--gold-deep)}
+
+/* ===== PORTAL LAYOUT ===== */
+#portalScreen{display:none;height:100vh;overflow:hidden}
+.app{display:flex;height:100vh}
+.sidebar{width:240px;flex-shrink:0;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:1.5rem 1rem}
+.sidebar .brand{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:600;color:var(--ink);padding:.4rem 1rem 1.6rem;letter-spacing:.5px}
+.sidebar .brand em{color:var(--gold);font-style:normal}
+.side-btn{display:flex;align-items:center;gap:.8rem;width:100%;background:none;border:none;color:var(--muted);padding:.85rem 1rem;border-radius:12px;font-size:.95rem;font-weight:500;cursor:pointer;text-align:left;transition:all .25s;font-family:'Inter',sans-serif;margin-bottom:.2rem}
+.side-btn:hover{background:var(--bg);color:var(--ink)}
+.side-btn.active{background:linear-gradient(135deg,var(--gold-light),#f3e7c4);color:var(--gold-deep);font-weight:600}
+.side-btn .ico{font-size:1.15rem}
+.sidebar .spacer{flex:1}
+.sidebar .logout{display:flex;align-items:center;gap:.6rem;background:none;border:none;color:var(--muted);padding:.85rem 1rem;border-radius:12px;font-size:.9rem;cursor:pointer;font-family:'Inter',sans-serif;transition:all .25s}
+.sidebar .logout:hover{background:var(--red-bg);color:var(--red)}
+
+.main{flex:1;overflow-y:auto;padding:2.5rem 3rem}
+.view{display:none}
+.view.active{display:block;animation:fadeIn .35s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ===== DASHBOARD ===== */
+.dash-greet{font-family:'Cormorant Garamond',serif;font-size:2.6rem;font-weight:500;margin-bottom:.3rem}
+.dash-greet em{color:var(--gold-deep);font-style:italic}
+.dash-sub{color:var(--muted);margin-bottom:2.2rem}
+.quote-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:2rem 2.2rem;box-shadow:var(--shadow);margin-bottom:2rem;position:relative}
+.quote-card .q-label{font-size:.72rem;text-transform:uppercase;letter-spacing:2px;color:var(--gold-deep);margin-bottom:.8rem}
+.quote-card blockquote{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.35rem;line-height:1.6;color:var(--ink)}
+.quote-card cite{display:block;margin-top:.8rem;font-size:.85rem;color:var(--muted);font-style:normal}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.2rem}
+.stat-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1.6rem;box-shadow:var(--shadow);text-align:center}
+.stat-card .stat-ico{font-size:1.8rem;margin-bottom:.5rem}
+.stat-card .stat-val{font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:600;color:var(--gold-deep);line-height:1}
+.stat-card .stat-lbl{font-size:.75rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-top:.5rem}
+.cta-row{margin-top:2rem}
+.cta-btn{display:inline-block;background:var(--ink);color:#fff;padding:1rem 2.4rem;border-radius:999px;font-size:1rem;font-weight:600;text-decoration:none;transition:all .3s}
+.cta-btn:hover{background:var(--gold-deep);transform:translateY(-2px);box-shadow:0 12px 30px rgba(138,106,31,.25)}
+
+/* ===== TASKS ===== */
+.tasks-head{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:500;margin-bottom:.3rem}
+.tasks-sub{color:var(--muted);margin-bottom:2rem}
+.task-card{display:flex;align-items:flex-start;gap:1.1rem;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.4rem 1.6rem;margin-bottom:1rem;cursor:pointer;transition:all .25s;box-shadow:var(--shadow)}
+.task-card:hover{border-color:var(--gold-light);transform:translateY(-2px)}
+.task-card.done{opacity:.55}
+.task-card.done .task-title{text-decoration:line-through;color:var(--muted)}
+.task-check{width:26px;height:26px;border:2px solid var(--line);border-radius:50%;flex-shrink:0;margin-top:.1rem;display:flex;align-items:center;justify-content:center;transition:all .25s}
+.task-check.checked{background:var(--green);border-color:var(--green)}
+.task-check.checked::after{content:'✓';color:#fff;font-size:.85rem;font-weight:700}
+.task-body{flex:1}
+.task-title{font-weight:600;margin-bottom:.2rem}
+.task-desc{color:var(--muted);font-size:.9rem}
+.task-xp{color:var(--gold-deep);font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-top:.5rem}
+.all-done{display:none;text-align:center;padding:2.5rem;color:var(--green);font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-style:italic}
+
+/* ===== COMMUNITY ===== */
+.comm-layout{display:flex;gap:1.5rem;height:calc(100vh - 8rem);align-items:stretch}
+.comm-side{width:230px;flex-shrink:0;display:flex;flex-direction:column;gap:.3rem}
+.comm-label{font-size:.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold-deep);margin:.6rem 0 .2rem}
+.channel-btn{display:flex;align-items:center;gap:.6rem;background:none;border:none;color:var(--muted);padding:.7rem .9rem;border-radius:10px;font-size:.9rem;cursor:pointer;text-align:left;font-family:'Inter',sans-serif;transition:all .2s}
+.channel-btn:hover{background:var(--card)}
+.channel-btn.active{background:linear-gradient(135deg,var(--gold-light),#f3e7c4);color:var(--gold-deep);font-weight:600}
+.comm-main{flex:1;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.comm-header{padding:1.1rem 1.5rem;border-bottom:1px solid var(--line);font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:var(--gold-deep)}
+.comm-msgs{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:.8rem}
 .msg-row{display:flex}
 .msg-row.mine{justify-content:flex-end}
-.msg-bubble{max-width:70%;padding:.7rem 1rem;border-radius:3px;font-size:.9rem;line-height:1.5;background:rgba(255,255,255,.04);border:1px solid var(--border)}
-.msg-row.mine .msg-bubble{background:rgba(201,162,39,.12);border-color:rgba(201,162,39,.3)}
+.msg-bubble{max-width:70%;padding:.7rem 1rem;border-radius:12px;font-size:.9rem;background:var(--bg);border:1px solid var(--line)}
+.msg-row.mine .msg-bubble{background:linear-gradient(135deg,var(--gold-light),#f3e7c4);border-color:transparent}
 .msg-meta{font-size:.7rem;color:var(--muted);margin-bottom:.2rem}
 .msg-row.mine .msg-meta{text-align:right}
-.msg-body{color:var(--text);word-wrap:break-word;white-space:pre-wrap}
-.chat-input-row{display:flex;gap:.8rem;padding:1rem;border-top:1px solid var(--border)}
-.chat-input-row input{flex:1;background:rgba(0,0,0,.3);border:1px solid var(--border);color:var(--text);padding:.8rem 1rem;font-family:'Inter',sans-serif;font-size:.9rem;border-radius:2px}
-.chat-input-row input:focus{outline:none;border-color:var(--gold)}
-.chat-input-row button{background:var(--gold);color:#000;border:none;padding:0 1.5rem;border-radius:2px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:1px}
-.chat-input-row button:hover{background:var(--gold-light)}
-.directory-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:2rem}
-.directory-box{background:var(--bg2);border:1px solid var(--border);width:100%;max-width:560px;max-height:80vh;overflow-y:auto;padding:2rem;border-radius:4px}
-.directory-box h3{font-family:'Cormorant Garamond',serif;font-size:1.6rem;color:var(--gold);margin-bottom:1rem}
-.directory-box input{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--border);color:var(--text);padding:.8rem 1rem;margin-bottom:1rem;font-family:'Inter',sans-serif;border-radius:2px}
-.directory-item{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.9rem 0;border-bottom:1px solid var(--border)}
-.dir-info .d-name{color:var(--text);font-weight:500}
-.dir-info .d-sub{color:var(--muted);font-size:.8rem}
-.dir-msg-btn{background:transparent;border:1px solid var(--gold);color:var(--gold);padding:.4rem 1rem;border-radius:2px;cursor:pointer;font-size:.75rem;font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
-.dir-msg-btn:hover{background:rgba(201,162,39,.1)}
-.chat-empty{color:var(--muted);text-align:center;padding:2rem;font-style:italic;font-family:'Cormorant Garamond',serif}
-@media(max-width:768px){.chat-layout{flex-direction:column}.chat-sidebar{width:100%}.chat-messages{max-height:40vh}}
+.msg-body{word-wrap:break-word;white-space:pre-wrap}
+.comm-input{display:flex;gap:.7rem;padding:1rem;border-top:1px solid var(--line)}
+.comm-input input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:.85rem 1.1rem;font-family:'Inter',sans-serif;font-size:.95rem;color:var(--ink)}
+.comm-input input:focus{outline:none;border-color:var(--gold)}
+.comm-input button{background:var(--ink);color:#fff;border:none;border-radius:10px;padding:0 1.5rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .25s}
+.comm-input button:hover{background:var(--gold-deep)}
+.comm-empty{color:var(--muted);text-align:center;padding:2rem;font-style:italic;font-family:'Cormorant Garamond',serif}
+
+/* ===== SUPPORT ===== */
+.support-head{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:500;margin-bottom:.3rem}
+.support-sub{color:var(--muted);margin-bottom:2.2rem;max-width:520px}
+.pricing{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.4rem;align-items:stretch}
+.price-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:2.2rem 2rem;box-shadow:var(--shadow);display:flex;flex-direction:column;transition:all .3s;position:relative}
+.price-card:hover{transform:translateY(-4px);box-shadow:0 18px 50px rgba(60,45,10,.10)}
+.price-card.featured{border:2px solid var(--gold);background:linear-gradient(180deg,#fffdf7,var(--card))}
+.price-card .badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold-deep);color:#fff;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;padding:.35rem 1rem;border-radius:999px;white-space:nowrap}
+.price-name{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:600;margin-bottom:.2rem}
+.price-amount{font-family:'Cormorant Garamond',serif;font-size:2.6rem;font-weight:600;color:var(--gold-deep);margin-bottom:.2rem}
+.price-amount span{font-size:1rem;color:var(--muted);font-weight:400}
+.price-desc{color:var(--muted);font-size:.9rem;margin-bottom:1.4rem}
+.price-feats{list-style:none;margin-bottom:1.8rem;flex:1}
+.price-feats li{display:flex;gap:.6rem;align-items:flex-start;padding:.4rem 0;font-size:.9rem;color:var(--ink)}
+.price-feats li::before{content:'✦';color:var(--gold);flex-shrink:0}
+.price-btn{display:block;text-align:center;background:var(--ink);color:#fff;padding:.9rem;border-radius:999px;font-weight:600;text-decoration:none;transition:all .3s}
+.price-btn:hover{background:var(--gold-deep)}
+.price-card.featured .price-btn{background:var(--gold-deep)}
+.price-card.featured .price-btn:hover{background:var(--ink)}
+.support-note{color:var(--muted);font-size:.8rem;margin-top:1.6rem;text-align:center}
+
+@media(max-width:820px){
+  .sidebar{width:72px;padding:1rem .5rem}
+  .sidebar .brand{font-size:0;padding:.4rem .5rem 1.2rem}
+  .sidebar .brand::after{content:'✦';font-size:1.4rem;color:var(--gold)}
+  .side-btn{justify-content:center;padding:.85rem .5rem}
+  .side-btn .ico{font-size:1.3rem}
+  .side-btn span.txt{display:none}
+  .sidebar .logout span.txt{display:none}
+  .main{padding:1.5rem}
+  .comm-layout{flex-direction:column;height:auto}
+  .comm-side{width:100%;flex-direction:row;flex-wrap:wrap}
+  .comm-main{min-height:60vh}
+}
 </style>
 </head>
 <body>
 
-<nav>
-  <div class="logo">✦ The Lotus Cross</div>
-  <ul id="navTabs">
-    <li><a data-tab="dashboard" class="active">Dashboard</a></li>
-    <li><a data-tab="tasks">Daily Tasks</a></li>
-    <li><a data-tab="ranks">Ranks</a></li>
-    <li><a data-tab="guide">Guide</a></li>
-    <li><a data-tab="community">Community</a></li>
-    <li><a data-tab="messages">Messages</a></li>
-    <li><a data-tab="support">Support Us</a></li>
-  </ul>
-  <div class="nav-right">
-    <span class="rank-badge" id="navRankBadge">🌱 Seeker</span>
-    <button class="btn-logout" onclick="logout()">Sign Out</button>
-  </div>
-</nav>
-
-<div id="noMemberState" class="no-member" style="display:none">
-  <h1>✦ Please sign in</h1>
-  <p>You must be signed in to access the Member Portal.</p>
-  <a href="login.html" class="btn-primary">Sign In →</a>
-</div>
-
-<div id="dashboardMain" class="dashboard" style="display:none">
-  <div class="welcome">
-    <h1>Welcome, <span class="gold" id="memberName">traveller</span></h1>
-    <p id="memberTagline">Every journey begins with a single breath. Continue walking.</p>
-  </div>
-
-  <div class="tabs">
-    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
-    <button class="tab-btn" data-tab="tasks">Daily Tasks</button>
-    <button class="tab-btn" data-tab="ranks">Ranks</button>
-    <button class="tab-btn" data-tab="guide">Guide</button>
-    <button class="tab-btn" data-tab="community">Community</button>
-    <button class="tab-btn" data-tab="messages">Messages</button>
-    <button class="tab-btn" data-tab="support">Support Us</button>
-  </div>
-
-  <div class="tab-content active" id="tab-dashboard">
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-icon">🌱</div><div class="stat-value" id="statRank">0</div><div class="stat-label">Current Rank</div></div>
-      <div class="stat-card"><div class="stat-icon">⚡</div><div class="stat-value" id="statXP">0</div><div class="stat-label">Total XP</div></div>
-      <div class="stat-card"><div class="stat-icon">✓</div><div class="stat-value" id="statTasks">0</div><div class="stat-label">Tasks Done</div></div>
-      <div class="stat-card"><div class="stat-icon">🔥</div><div class="stat-value" id="statStreak">0</div><div class="stat-label">Day Streak</div></div>
-    </div>
-    <div class="card">
-      <div class="card-label">Your Progress</div>
-      <h2>Path to Next Rank</h2>
-      <div class="rank-display" id="rankDisplay"></div>
-      <div class="progress-section">
-        <div class="progress-label"><span id="progressTitle">Progress to Initiate</span><span id="progressNumbers">0 / 7 tasks</span></div>
-        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-      </div>
-      <p id="rankHint" style="color:var(--muted);font-size:.9rem;margin-top:1rem"></p>
-    </div>
-    <div class="card">
-      <div class="card-label">Today</div>
-      <h2>Daily Practice</h2>
-      <p style="color:var(--muted);margin-bottom:1.5rem">Complete today's tasks to earn XP and advance your rank.</p>
-      <a href="#" onclick="showTab('tasks');return false" class="donate-btn" style="text-decoration:none">View Today's Tasks →</a>
-    </div>
-    <div class="card">
-      <div class="card-label">Your Journey</div>
-      <h2>Member Since</h2>
-      <p style="color:var(--muted)" id="enrolledDate">—</p>
-      <p style="color:var(--muted);margin-top:.5rem;font-size:.9rem" id="memberTradition">—</p>
-    </div>
-  </div>
-
-  <div class="tab-content" id="tab-tasks">
-    <div class="card">
-      <div class="card-label">Daily Practice</div>
-      <h2>Today's Sacred Tasks</h2>
-      <p style="color:var(--muted);margin-bottom:2rem">Each task cultivates love, awareness, and righteous action. Complete them mindfully — not as chores, but as practice.</p>
-      <div id="taskList"></div>
-      <div id="allTasksDone" style="display:none;text-align:center;padding:2rem;color:var(--gold);font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-style:italic">
-        ✦ You have completed all tasks for today. Return tomorrow to continue your practice.<br><span style="font-size:.9rem;color:var(--muted);font-style:normal">The path is walked one day at a time.</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="tab-content" id="tab-ranks">
-    <div class="card">
-      <div class="card-label">Path of Ascension</div>
-      <h2>The Five Ranks</h2>
-      <p style="color:var(--muted);margin-bottom:2rem">Your rank reflects your commitment, not your worth. Advance by completing daily tasks and embodying the teachings.</p>
-      <table class="ranks-table" id="ranksTable"></table>
-    </div>
-  </div>
-
-  <div class="tab-content" id="tab-guide">
-    <div class="card">
-      <div class="card-label">How to Participate</div>
-      <h2>The Member's Guide</h2>
-      <div class="instruction-block">
-        <h3>🌱 Getting Started (Seeker)</h3>
-        <ol>
-          <li><strong>Complete your daily tasks.</strong> Log in daily and complete the 5 sacred tasks. Each earns XP and advances your rank.</li>
-          <li><strong>Maintain your streak.</strong> Consecutive days build a streak. Breaks reset it but not your progress.</li>
-          <li><strong>Study the teachings.</strong> Read the Three Paths on the main site. Reflect on how they connect.</li>
-          <li><strong>Live the values.</strong> Practice love, awareness, and righteous action in everything you do.</li>
-        </ol>
-      </div>
-      <div class="instruction-block">
-        <h3>🌿 Advancing to Initiate (Rank 1)</h3>
-        <ul><li>Complete <strong>7 daily tasks</strong></li><li>Take the <strong>Vow of Harmony</strong></li><li>Begin <strong>mentoring newer Seekers</strong></li></ul>
-      </div>
-      <div class="instruction-block">
-        <h3>🔥 Becoming a Disciple (Rank 2)</h3>
-        <ul><li>Complete <strong>30+ daily tasks</strong></li><li>Lead a <strong>study circle</strong></li><li>Organise a <strong>community service event</strong></li><li>Begin <strong>teaching the basics</strong></li></ul>
-      </div>
-      <div class="instruction-block">
-        <h3>⭐ Rising to Elder (Rank 3)</h3>
-        <ul><li>Complete <strong>90+ daily tasks</strong></li><li>Serve as a <strong>community guide</strong></li><li>Represent us in <strong>interfaith dialogue</strong></li><li>Be a <strong>living example</strong></li></ul>
-      </div>
-      <div class="instruction-block">
-        <h3>✦ Reaching Guide (Rank 4)</h3>
-        <ul><li>The highest rank, earned through <strong>years of devoted service</strong></li><li>Guides shape the community's direction</li><li>Selected by consensus of Guides and Elders</li></ul>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-label">Daily Practice</div>
-      <h2>What the Tasks Mean</h2>
-      <div class="instruction-block">
-        <h3>The Five Daily Tasks</h3>
-        <ul>
-          <li><strong>Meditation (10 minutes)</strong> — The Way of Awareness. Sit still. Breathe. Observe your mind.</li>
-          <li><strong>Act of Kindness</strong> — The Way of Love. One deliberate act of kindness for another.</li>
-          <li><strong>Scripture Reading</strong> — Read a passage from any sacred text. Reflect on its meaning.</li>
-          <li><strong>Mindful Action</strong> — The Way of Order. Perform one task with full mindful awareness.</li>
-          <li><strong>Self-Reflection</strong> — At day's end, reflect on what you did well and what karma you created.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <div class="tab-content" id="tab-community">
-    <div class="card">
-      <div class="card-label">Our Community</div>
-      <h2>Walk Together</h2>
-      <p style="color:var(--muted);margin-bottom:2rem">The path is not walked alone. Here's how to get involved:</p>
-      <div class="community-grid">
-        <div class="community-card"><div class="icon">🌐</div><h3>Online Gatherings</h3><p>Monthly virtual study circles and meditation sessions. Dates shared via email.</p></div>
-        <div class="community-card"><div class="icon">👥</div><h3>Local Chapters</h3><p>In-person gatherings in cities with enough members.</p></div>
-        <div class="community-card"><div class="icon">📖</div><h3>Study Circles</h3><p>Small groups reading sacred texts together.</p></div>
-        <div class="community-card"><div class="icon">🤝</div><h3>Mentorship</h3><p>Experienced members guide newer Seekers.</p></div>
-        <div class="community-card"><div class="icon">🌍</div><h3>Service Projects</h3><p>Volunteer work — food drives, cleanup, shelter support.</p></div>
-        <div class="community-card"><div class="icon">💬</div><h3>Discussion Forum</h3><p>Share insights and connect. Coming soon.</p></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-label">Community Values</div>
-      <h2>How We Treat Each Other</h2>
-      <div class="instruction-block">
-        <ul>
-          <li><strong>Respect all paths.</strong> No tradition is superior.</li>
-          <li><strong>No proselytising.</strong> Share experience; do not impose beliefs.</li>
-          <li><strong>Confidentiality.</strong> What is shared stays in the community.</li>
-          <li><strong>Kindness first.</strong> Disagree without disrespect.</li>
-          <li><strong>Service over status.</strong> Ranks are for organisation, not hierarchy.</li>
-          <li><strong>Voluntary participation.</strong> You may leave at any time.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <div class="tab-content" id="tab-support">
-    <div class="card">
-      <div class="card-label">Support Our Mission</div>
-      <h2>Help Us Grow</h2>
-      <p style="color:var(--muted);margin-bottom:2rem;line-height:1.9">The Lotus Cross is funded entirely by its members. All amounts are voluntary. There is no obligation — ever.</p>
-      <div class="instruction-block">
-        <h3>💎 Ways to Support</h3>
-        <ul>
-          <li><strong>One-time donation</strong> — Any amount helps sustain our work.</li>
-          <li><strong>Monthly patronage</strong> — From £5/month. Patrons receive exclusive study materials.</li>
-          <li><strong>Spread the word</strong> — Share The Lotus Cross with those who might resonate.</li>
-          <li><strong>Volunteer your skills</strong> — Design, writing, video, teaching.</li>
-          <li><strong>Attend events</strong> — Your presence is a form of support.</li>
-        </ul>
-      </div>
-      <div class="donate-box">
-        <h3>✦ Give From the Heart</h3>
-        <p>"Each of you should give what you have decided in your heart to give, not reluctantly or under compulsion, for God loves a cheerful giver." — 2 Corinthians 9:7</p>
-        <div class="donate-options">
-          <a class="donate-btn" href="https://ko-fi.com/lotus77096" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none">☕ £5 One-Time</a>
-          <a class="donate-btn" href="https://ko-fi.com/lotus77096" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none">☕ £10 One-Time</a>
-          <a class="donate-btn" href="https://ko-fi.com/lotus77096" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none">☕ £25 One-Time</a>
-          <a class="donate-btn" href="https://ko-fi.com/lotus77096/tiers" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none;background:var(--purple);color:#fff">☕ £5 / Month Patron</a>
-        </div>
-        <p class="donate-note">The Lotus Cross is a spiritual community, not a registered charity yet. Donations are not tax-deductible.</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="tab-content" id="tab-messages">
-    <div class="chat-layout">
-      <div class="chat-sidebar">
-        <div class="chat-sidebar-label">Channels</div>
-        <button class="chat-room-btn active" data-room="general" onclick="openChannel('general','💬 General')">💬 General</button>
-        <button class="chat-room-btn" data-room="meditation" onclick="openChannel('meditation','🧘 Meditation')">🧘 Meditation</button>
-        <button class="chat-room-btn" data-room="study" onclick="openChannel('study','📖 Study')">📖 Study</button>
-        <button class="chat-room-btn" data-room="support" onclick="openChannel('support','🤝 Support')">🤝 Support</button>
-        <div class="chat-sidebar-label">Direct Messages</div>
-        <div id="dmPartners"></div>
-        <button class="chat-find-btn" onclick="showDirectory()">🔍 Find Members</button>
-      </div>
-      <div class="chat-main">
-        <div class="chat-header" id="chatHeader">💬 Community Chat</div>
-        <div class="chat-messages" id="chatMessages"></div>
-        <div class="chat-input-row">
-          <input id="chatInput" placeholder="Write a message…" onkeydown="if(event.key==='Enter')sendChat()">
-          <button onclick="sendChat()">Send</button>
-        </div>
-      </div>
-    </div>
-    <div class="directory-overlay" id="directoryOverlay" style="display:none" onclick="if(event.target===this)hideDirectory()">
-      <div class="directory-box">
-        <h3>✦ Find Members</h3>
-        <input id="directorySearch" placeholder="Search by name, country, tradition or rank…" oninput="renderDirectory(this.value)">
-        <div id="directoryList"></div>
-        <button class="chat-find-btn" onclick="hideDirectory()" style="margin-top:1rem;width:100%">Close</button>
-      </div>
-    </div>
+<!-- ===== LOGIN SCREEN (vizibil doar cand nu esti logat) ===== -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">The <em>Lotus</em> Cross</div>
+    <div class="login-sub">Intră în comunitate</div>
+    <div id="loginMsg" class="msg"></div>
+    <form id="loginForm" onsubmit="return doLogin(event)">
+      <div class="field"><label for="email">Email</label><input type="email" id="email" required placeholder="tu@email.com"></div>
+      <div class="field"><label for="password">Parolă</label><input type="password" id="password" required placeholder="Parola ta"></div>
+      <button type="submit" class="btn">Sign In</button>
+    </form>
+    <button class="btn btn-ghost" onclick="showSetPassword()">Prima dată? Setează-ți parola</button>
+    <a href="index.html" class="back-link">← Înapoi la site</a>
   </div>
 </div>
 
-<footer>
-  <p>✦ The Lotus Cross — Where the paths converge into one.</p>
-  <p>© 2026 The Lotus Cross. <a href="index.html">← Return to main site</a></p>
-</footer>
+<!-- ===== PORTAL (ascuns pana la login) ===== -->
+<div id="portalScreen">
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">The <em>Lotus</em> Cross</div>
+      <button class="side-btn active" data-tab="dashboard"><span class="ico">🏛️</span><span class="txt">Dashboard</span></button>
+      <button class="side-btn" data-tab="tasks"><span class="ico">🧘</span><span class="txt">Sarcini zilnice</span></button>
+      <button class="side-btn" data-tab="community"><span class="ico">💬</span><span class="txt">Comunitate</span></button>
+      <button class="side-btn" data-tab="support"><span class="ico">💎</span><span class="txt">Susține-ne</span></button>
+      <div class="spacer"></div>
+      <button class="logout" onclick="logout()"><span class="ico">⎋</span><span class="txt">Deconectare</span></button>
+    </aside>
+
+    <main class="main">
+      <!-- DASHBOARD -->
+      <section id="view-dashboard" class="view active">
+        <div class="dash-greet">Pace, <em id="dashName">călătorule</em>.</div>
+        <p class="dash-sub">Continuă-ți drumul. Fiecare pas contează.</p>
+        <div class="quote-card">
+          <div class="q-label">Citatul zilei</div>
+          <blockquote id="dashQuote">…</blockquote>
+          <cite id="dashQuoteSrc"></cite>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-ico" id="dashRankIco">🌱</div><div class="stat-val" id="dashRank">Seeker</div><div class="stat-lbl">Rank actual</div></div>
+          <div class="stat-card"><div class="stat-ico">⚡</div><div class="stat-val" id="dashXp">0</div><div class="stat-lbl">XP</div></div>
+          <div class="stat-card"><div class="stat-ico">🔥</div><div class="stat-val" id="dashStreak">0</div><div class="stat-lbl">Streak (zile)</div></div>
+        </div>
+        <div class="cta-row"><a href="#" class="cta-btn" onclick="switchTab('tasks');return false">Începe sarcinile de astăzi →</a></div>
+      </section>
+
+      <!-- DAILY TASKS -->
+      <section id="view-tasks" class="view">
+        <div class="tasks-head">Sarcinile zilnice</div>
+        <p class="tasks-sub">Bifează fiecare sarcină pe măsură ce o îndeplinești. Fiecare aduce XP și te apropie de următorul rank.</p>
+        <div id="taskList"></div>
+        <div class="all-done" id="allTasksDone">✦ Ai completat toate sarcinile de azi. Revino mâine.<br><span style="font-size:.9rem;color:var(--muted);font-style:normal">Drumul se parcurge o zi la un pas.</span></div>
+      </section>
+
+      <!-- COMMUNITY -->
+      <section id="view-community" class="view">
+        <div class="comm-layout">
+          <div class="comm-side">
+            <div class="comm-label">Canale</div>
+            <button class="channel-btn active" data-channel="general" onclick="openChannel('general')"># general</button>
+            <button class="channel-btn" data-channel="meditatie" onclick="openChannel('meditatie')"># meditatie</button>
+            <button class="channel-btn" data-channel="studiu" onclick="openChannel('studiu')"># studiu</button>
+          </div>
+          <div class="comm-main">
+            <div class="comm-header" id="commHeader"># general</div>
+            <div class="comm-msgs" id="commMsgs"></div>
+            <div class="comm-input">
+              <input id="commInput" placeholder="Scrie un mesaj…" onkeydown="if(event.key==='Enter')sendMsg()">
+              <button onclick="sendMsg()">Trimite</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SUPPORT -->
+      <section id="view-support" class="view">
+        <div class="support-head">Susține-ne</div>
+        <p class="support-sub">The Lotus Cross este susținut integral de membrii săi. Toate sumele sunt voluntare — nu există nicio obligație.</p>
+        <div class="pricing">
+          <div class="price-card">
+            <div class="price-name">Supporter</div>
+            <div class="price-amount">£5<span> / lună</span></div>
+            <p class="price-desc">Pentru cei care vor să contribuie la comunitate.</p>
+            <ul class="price-feats">
+              <li>Insignă de Supporter</li>
+              <li>Acces la toate canalele</li>
+              <li>Mulțumirea noastră sinceră</li>
+            </ul>
+            <a class="price-btn" href="https://ko-fi.com/lotus77096" target="_blank" rel="noopener">Alege £5</a>
+          </div>
+          <div class="price-card featured">
+            <div class="badge">Cel mai popular</div>
+            <div class="price-name">Patron</div>
+            <div class="price-amount">£15<span> / lună</span></div>
+            <p class="price-desc">Pentru cei care vor să meargă mai adânc.</p>
+            <ul class="price-feats">
+              <li>Primești materiale de studiu exclusive în fiecare lună</li>
+              <li>Insignă de Patron</li>
+              <li>Acces anticipat la meditații ghidate</li>
+              <li>Toate beneficiile de Supporter</li>
+            </ul>
+            <a class="price-btn" href="https://ko-fi.com/lotus77096" target="_blank" rel="noopener">Alege £15</a>
+          </div>
+          <div class="price-card">
+            <div class="price-name">Guide</div>
+            <div class="price-amount">£50<span> / lună</span></div>
+            <p class="price-desc">Pentru cei care susțin profund misiunea.</p>
+            <ul class="price-feats">
+              <li>O sesiune de îndrumare personală pe lună</li>
+              <li>Insignă de Guide</li>
+              <li>Toate beneficiile de Patron</li>
+            </ul>
+            <a class="price-btn" href="https://ko-fi.com/lotus77096" target="_blank" rel="noopener">Alege £50</a>
+          </div>
+        </div>
+        <p class="support-note">The Lotus Cross este o comunitate spirituală, nu o organizație caritabilă înregistrată. Donațiile nu sunt deductibile fiscal.</p>
+      </section>
+    </main>
+  </div>
+</div>
 
 <script>
-var RANKS=[
-  {id:0,name:'Seeker',icon:'🌱',xpNeeded:7,desc:'Newly enrolled. Learning the Three Paths.'},
-  {id:1,name:'Initiate',icon:'🌿',xpNeeded:30,desc:'Committed. Studying, mentoring, serving.'},
-  {id:2,name:'Disciple',icon:'🔥',xpNeeded:90,desc:'Dedicated. Leading study circles and service.'},
-  {id:3,name:'Elder',icon:'⭐',xpNeeded:200,desc:'Leader. Guides the community.'},
-  {id:4,name:'Guide',icon:'✦',xpNeeded:500,desc:'Teacher. Keeper of the teachings.'}
-];
-var DAILY_TASKS=[
-  {id:'meditate',title:'Meditation (10 minutes)',desc:'Sit in stillness. Breathe. Observe your mind without judgment. This is the Buddha\'s medicine for suffering.',xp:10},
-  {id:'kindness',title:'Act of Kindness',desc:'Do one deliberate act of kindness for another person. No matter how small. This is Christ\'s teaching in action.',xp:10},
-  {id:'scripture',title:'Scripture Reading',desc:'Read a passage from any sacred text (Bible, Dhammapada, Bhagavad Gita). Reflect on its meaning for your life today.',xp:10},
-  {id:'mindful',title:'Mindful Action',desc:'Perform one daily task (washing dishes, walking, eating) with full mindful awareness. Do one thing at a time.',xp:10},
-  {id:'reflect',title:'Self-Reflection',desc:'At day\'s end, reflect: What did I do well? What could I do better? What karma did I create today?',xp:10}
-];
+// ===== STATE =====
+var token=localStorage.getItem('lotus_token')||'';
+var currentTab='dashboard';
+var currentChannel='general';
+var currentTasks=[];
+var doneToday=[];
+var chatPollTimer=null;
 
-function getToken(){return localStorage.getItem('lotus_token');}
+// ===== API =====
 function api(path,opts){
-  return fetch(path,Object.assign({headers:{'Content-Type':'application/json','Authorization':'Bearer '+getToken()}},opts||{}))
-    .then(r=>r.json().then(d=>({ok:r.ok,d})));
+  return fetch(path,Object.assign({headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}},opts||{}))
+    .then(function(r){return r.json().then(function(d){return{ok:r.ok,d:d};});});
 }
 
-function init(){
-  var token=getToken();
-  if(!token){document.getElementById('noMemberState').style.display='block';document.getElementById('dashboardMain').style.display='none';return;}
-  document.getElementById('noMemberState').style.display='none';
-  document.getElementById('dashboardMain').style.display='block';
-  loadDashboard();
+// ===== LOGIN / LOGOUT =====
+function showMsg(text,type){var m=document.getElementById('loginMsg');m.className='msg '+type;m.textContent=text;}
+function doLogin(e){
+  e.preventDefault();
+  var email=document.getElementById('email').value;
+  var password=document.getElementById('password').value;
+  fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:password})})
+    .then(function(r){return r.json().then(function(d){return{ok:r.ok,d:d};});})
+    .then(function(res){
+      if(!res.ok){showMsg(res.d.error||'Login eșuat','error');return;}
+      token=res.d.token;
+      localStorage.setItem('lotus_token',token);
+      enterPortal();
+    })
+    .catch(function(){showMsg('Eroare de rețea. Serverul rulează?','error');});
+  return false;
 }
-
-function loadDashboard(){
-  api('/api/member/dashboard').then(({ok,d})=>{
-    if(!ok){if(d.error==='Not authenticated'){localStorage.removeItem('lotus_token');window.location.href='login.html';}return;}
-    var u=d.user;
-    document.getElementById('memberName').textContent=u.name||'traveller';
-    document.getElementById('statRank').textContent=u.rank;
-    document.getElementById('statXP').textContent=u.xp;
-    document.getElementById('statTasks').textContent=u.tasks_completed;
-    document.getElementById('statStreak').textContent=u.streak||0;
-    var rank=RANKS[u.rank];
-    document.getElementById('navRankBadge').textContent=rank.icon+' '+rank.name;
-    if(u.enrolled_at){document.getElementById('enrolledDate').textContent='Enrolled on '+new Date(u.enrolled_at).toLocaleDateString('en-GB',{year:'numeric',month:'long',day:'numeric'});}
-    if(u.tradition){document.getElementById('memberTradition').textContent='Path: '+u.tradition;}
-    var rd='<div class="rank-icon">'+rank.icon+'</div><div class="rank-info"><h3>'+rank.name+'</h3><p>'+rank.desc+'</p></div>';
-    document.getElementById('rankDisplay').innerHTML=rd;
-    if(u.rank<4){
-      var next=RANKS[u.rank+1];
-      var pct=Math.min(100,Math.round((u.tasks_completed/next.xpNeeded)*100));
-      document.getElementById('progressTitle').textContent='Progress to '+next.name;
-      document.getElementById('progressNumbers').textContent=u.tasks_completed+' / '+next.xpNeeded+' tasks';
-      document.getElementById('progressFill').style.width=pct+'%';
-      var rem=next.xpNeeded-u.tasks_completed;
-      document.getElementById('rankHint').textContent=rem>0?'Complete '+rem+' more '+(rem===1?'task':'tasks')+' to advance to '+next.name+'.':'You are ready to advance to '+next.name+'!';
-    } else {
-      document.getElementById('progressTitle').textContent='Highest Rank Achieved';
-      document.getElementById('progressNumbers').textContent='✦ Guide';
-      document.getElementById('progressFill').style.width='100%';
-      document.getElementById('rankHint').textContent='You have reached the highest rank. The path continues through service.';
-    }
-    currentTasks=d.tasks||[];
-    renderTasks(d.doneToday);
-    renderRanks(u.rank);
+function showSetPassword(){
+  var email=prompt('Email-ul tău:');
+  if(!email)return;
+  var password=prompt('Alege o parolă (min 6 caractere):');
+  if(!password)return;
+  fetch('/api/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:password})})
+    .then(function(r){return r.json().then(function(d){return{ok:r.ok,d:d};});})
+    .then(function(res){
+      if(res.ok){showMsg('Parolă setată! Te poți autentifica.','success');}
+      else{showMsg(res.d.error||'Eroare','error');}
+    })
+    .catch(function(){showMsg('Eroare de rețea','error');});
+}
+function logout(){
+  api('/api/logout',{method:'POST'}).finally(function(){
+    token='';localStorage.removeItem('lotus_token');
+    document.getElementById('portalScreen').style.display='none';
+    document.getElementById('loginScreen').style.display='flex';
   });
 }
 
-var currentTasks=[];
-function renderTasks(doneToday){
+// ===== SPA NAVIGATION =====
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.side-btn').forEach(function(b){b.classList.toggle('active',b.dataset.tab===tab);});
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  document.getElementById('view-'+tab).classList.add('active');
+  if(tab==='dashboard')loadDashboard();
+  if(tab==='tasks')loadTasks();
+  if(tab==='community'){loadChannel();startChatPolling();}
+  else stopChatPolling();
+}
+document.querySelectorAll('.side-btn').forEach(function(b){b.addEventListener('click',function(){switchTab(b.dataset.tab);});});
+
+// ===== DASHBOARD =====
+var QUOTES=[
+  {text:'„Iubește-ți aproapele ca pe tine însuți.”',src:'— Tradiția creștină'},
+  {text:'„Mintea este totul. Ceea ce gândești, devii.”',src:'— Tradiția budistă'},
+  {text:'„Fă-ți datoria fără a te atașa de roade.”',src:'— Tradiția hindusă'}
+];
+function loadDashboard(){
+  api('/api/member/dashboard').then(function(res){
+    if(!res.ok){if(res.d.error==='Not authenticated'){logout();}return;}
+    var u=res.d.user;
+    document.getElementById('dashName').textContent=u.name||'călătorule';
+    var rank=res.d.ranks[u.rank]||res.d.ranks[0];
+    document.getElementById('dashRankIco').textContent=rank.icon;
+    document.getElementById('dashRank').textContent=rank.name;
+    document.getElementById('dashXp').textContent=u.xp||0;
+    document.getElementById('dashStreak').textContent=u.streak||0;
+    var day=Math.floor(Date.now()/86400000)%QUOTES.length;
+    document.getElementById('dashQuote').textContent=QUOTES[day].text;
+    document.getElementById('dashQuoteSrc').textContent=QUOTES[day].src;
+  });
+}
+
+// ===== TASKS =====
+function loadTasks(){
+  api('/api/member/dashboard').then(function(res){
+    if(!res.ok){if(res.d.error==='Not authenticated'){logout();}return;}
+    currentTasks=res.d.tasks||[];
+    doneToday=res.d.doneToday||[];
+    renderTasks();
+  });
+}
+function renderTasks(){
   var list=document.getElementById('taskList');
   var html='';var allDone=true;
   currentTasks.forEach(function(t){
     var isDone=doneToday.indexOf(String(t.id))!==-1;
     if(!isDone)allDone=false;
-    html+='<div class="task-item'+(isDone?' completed':'')+'" onclick="toggleTask(\''+t.id+'\')">'+
-      '<div class="task-checkbox'+(isDone?' checked':'')+'"></div>'+
-      '<div class="task-content"><div class="task-title">'+t.title+'</div><div class="task-desc">'+t.description+'</div><div class="task-xp">+'+t.xp+' XP</div></div></div>';
+    html+='<div class="task-card'+(isDone?' done':'')+'" onclick="toggleTask('+t.id+')">'+
+      '<div class="task-check'+(isDone?' checked':'')+'"></div>'+
+      '<div class="task-body"><div class="task-title">'+t.title+'</div><div class="task-desc">'+t.description+'</div><div class="task-xp">+'+t.xp+' XP</div></div></div>';
   });
   list.innerHTML=html;
   document.getElementById('allTasksDone').style.display=allDone?'block':'none';
 }
-
-function toggleTask(taskId){
-  api('/api/member/task',{method:'POST',body:JSON.stringify({taskId})}).then(({ok})=>{
-    if(ok)loadDashboard();
+function toggleTask(id){
+  api('/api/member/task',{method:'POST',body:JSON.stringify({taskId:id})}).then(function(res){
+    if(res.ok)loadTasks();
   });
 }
 
-function renderRanks(currentRank){
-  var table=document.getElementById('ranksTable');
-  var html='<tr><th></th><th>Rank</th><th>Tasks Required</th><th>Description</th></tr>';
-  RANKS.forEach(function(r){
-    var isCurrent=r.id===currentRank;
-    html+='<tr class="'+(isCurrent?'current-rank':'')+'"><td>'+r.icon+'</td><td><strong style="color:'+(isCurrent?'var(--gold)':'var(--text)')+'">'+r.name+'</strong></td><td>'+(r.id===0?'0':r.xpNeeded)+'</td><td>'+r.desc+'</td></tr>';
-  });
-  table.innerHTML=html;
+// ===== COMMUNITY =====
+function openChannel(ch){
+  currentChannel=ch;
+  document.querySelectorAll('.channel-btn').forEach(function(b){b.classList.toggle('active',b.dataset.channel===ch);});
+  document.getElementById('commHeader').textContent='# '+ch;
+  loadChannel();
 }
-
-// ===== Community Chat & Messaging =====
-var chatMode='general', currentChannel='general', chatWithId=null, chatWithName=null, chatPollTimer=null, allMembers=[];
-function escapeHtml(s){if(s==null)return '';return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-function rankName(r){return RANKS[r]?RANKS[r].name:'Seeker';}
-function formatTime(iso){var d=new Date(iso);return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
-
-function openChannel(channel,name){chatMode='general';currentChannel=channel;chatWithId=null;chatWithName=null;document.querySelectorAll('.chat-room-btn').forEach(function(b){b.classList.toggle('active',b.dataset.room===channel);});loadPartners();loadChannel();}
-function loadChannel(){api('/api/messages?channel='+currentChannel).then(function(r){if(!r.ok)return;var labels={'general':'💬 General','meditation':'🧘 Meditation','study':'📖 Study','support':'🤝 Support'};renderChat(r.d.messages,r.d.me,labels[currentChannel]||('💬 '+currentChannel));});}
-function renderChat(messages,me,header){document.getElementById('chatHeader').textContent=header;var box=document.getElementById('chatMessages');if(!messages.length){box.innerHTML='<div class="chat-empty">No messages yet. Start the conversation.</div>';return;}box.innerHTML='';messages.forEach(function(m){var row=document.createElement('div');row.className='msg-row'+(m.sender_id===me?' mine':'');var b=document.createElement('div');b.className='msg-bubble';var meta=document.createElement('div');meta.className='msg-meta';meta.textContent=m.sender_name+' · '+formatTime(m.created_at);var body=document.createElement('div');body.className='msg-body';body.textContent=m.body;b.appendChild(meta);b.appendChild(body);row.appendChild(b);box.appendChild(row);});box.scrollTop=box.scrollHeight;}
-
-function sendChat(){var input=document.getElementById('chatInput');var body=input.value.trim();if(!body)return;var payload={body:body};if(chatMode==='dm'&&chatWithId)payload.receiverId=chatWithId;else payload.channel=currentChannel;api('/api/messages',{method:'POST',body:JSON.stringify(payload)}).then(function(r){if(r.ok){input.value='';if(chatMode==='general')loadChannel();else loadDM();}});}
-
-function loadPartners(){api('/api/messages/partners').then(function(r){if(!r.ok)return;var list=document.getElementById('dmPartners');if(!r.d.partners.length){list.innerHTML='<div style="color:var(--muted);font-size:.8rem;padding:.5rem">No conversations yet</div>';return;}list.innerHTML='';r.d.partners.forEach(function(p){var btn=document.createElement('button');btn.className='chat-partner'+(chatMode==='dm'&&chatWithId===p.id?' active':'');var av=document.createElement('div');av.className='avatar';av.textContent=(p.name||'?').charAt(0).toUpperCase();var info=document.createElement('div');var nm=document.createElement('div');nm.className='p-name';nm.textContent=p.name;var pv=document.createElement('div');pv.className='p-preview';pv.textContent=p.last_msg||'';info.appendChild(nm);info.appendChild(pv);btn.appendChild(av);btn.appendChild(info);btn.onclick=function(){openDM(p.id,p.name);};list.appendChild(btn);});});}
-function openDM(id,name){chatMode='dm';chatWithId=id;chatWithName=name;document.querySelectorAll('.chat-room-btn').forEach(function(b){b.classList.remove('active');});loadPartners();loadDM();}
-function loadDM(){if(!chatWithId)return;api('/api/messages?with='+chatWithId).then(function(r){if(!r.ok)return;renderChat(r.d.messages,r.d.me,'✉ '+chatWithName);});}
-
-function showDirectory(){document.getElementById('directoryOverlay').style.display='flex';document.getElementById('directorySearch').value='';loadDirectory();}
-function hideDirectory(){document.getElementById('directoryOverlay').style.display='none';}
-function loadDirectory(){api('/api/members').then(function(r){if(!r.ok)return;allMembers=r.d.members;renderDirectory('');});}
-function renderDirectory(q){var list=document.getElementById('directoryList');var ql=(q||'').toLowerCase();var filtered=allMembers.filter(function(m){return !ql||(m.name||'').toLowerCase().indexOf(ql)!==-1||(m.country||'').toLowerCase().indexOf(ql)!==-1||(m.tradition||'').toLowerCase().indexOf(ql)!==-1||rankName(m.rank).toLowerCase().indexOf(ql)!==-1;});if(!filtered.length){list.innerHTML='<div class="chat-empty">No members found</div>';return;}list.innerHTML='';filtered.forEach(function(m){var item=document.createElement('div');item.className='directory-item';var info=document.createElement('div');info.className='dir-info';var nm=document.createElement('div');nm.className='d-name';nm.textContent=m.name;var sub=document.createElement('div');sub.className='d-sub';sub.textContent=rankName(m.rank)+' · '+(m.country||'—')+(m.tradition?' · '+m.tradition:'');info.appendChild(nm);info.appendChild(sub);var btn=document.createElement('button');btn.className='dir-msg-btn';btn.textContent='Message';btn.onclick=function(){hideDirectory();openDM(m.id,m.name);};item.appendChild(info);item.appendChild(btn);list.appendChild(item);});}
-
-function startChatPolling(){stopChatPolling();chatPollTimer=setInterval(function(){if(chatMode==='general')loadChannel();else loadDM();},4000);}
+function loadChannel(){
+  api('/api/messages?channel='+currentChannel).then(function(res){
+    if(!res.ok)return;
+    renderMsgs(res.d.messages,res.d.me);
+  });
+}
+function renderMsgs(messages,me){
+  var box=document.getElementById('commMsgs');
+  if(!messages.length){box.innerHTML='<div class="comm-empty">Niciun mesaj încă. Începe conversația.</div>';return;}
+  box.innerHTML='';
+  messages.forEach(function(m){
+    var row=document.createElement('div');
+    row.className='msg-row'+(m.sender_id===me?' mine':'');
+    var b=document.createElement('div');b.className='msg-bubble';
+    var meta=document.createElement('div');meta.className='msg-meta';
+    meta.textContent=m.sender_name+' · '+new Date(m.created_at).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+    var body=document.createElement('div');body.className='msg-body';body.textContent=m.body;
+    b.appendChild(meta);b.appendChild(body);row.appendChild(b);box.appendChild(row);
+  });
+  box.scrollTop=box.scrollHeight;
+}
+function sendMsg(){
+  var input=document.getElementById('commInput');
+  var body=input.value.trim();
+  if(!body)return;
+  api('/api/messages',{method:'POST',body:JSON.stringify({body:body,channel:currentChannel})}).then(function(res){
+    if(res.ok){input.value='';loadChannel();}
+  });
+}
+function startChatPolling(){stopChatPolling();chatPollTimer=setInterval(loadChannel,4000);}
 function stopChatPolling(){if(chatPollTimer){clearInterval(chatPollTimer);chatPollTimer=null;}}
 
-function showTab(tabName){
-  document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});
-  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
-  document.getElementById('tab-'+tabName).classList.add('active');
-  document.querySelectorAll('.tab-btn').forEach(function(b){if(b.dataset.tab===tabName)b.classList.add('active');});
-  document.querySelectorAll('#navTabs a').forEach(function(a){a.classList.remove('active');if(a.dataset.tab===tabName)a.classList.add('active');});
-  if(tabName==='messages'){loadPartners();loadChannel();startChatPolling();}else{stopChatPolling();}
-  window.scrollTo(0,0);
+// ===== INIT =====
+function enterPortal(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('portalScreen').style.display='block';
+  switchTab('dashboard');
 }
-
-document.addEventListener('DOMContentLoaded',function(){
-  document.querySelectorAll('.tab-btn').forEach(function(b){b.addEventListener('click',function(){showTab(b.dataset.tab);});});
-  document.querySelectorAll('#navTabs a').forEach(function(a){if(a.dataset.tab){a.addEventListener('click',function(e){e.preventDefault();showTab(a.dataset.tab);});}});
-  init();
-});
-
-function logout(){
-  api('/api/logout',{method:'POST'}).finally(function(){
-    localStorage.removeItem('lotus_token');
-    localStorage.removeItem('lotus_user');
-    window.location.href='login.html';
-  });
-}
+(function init(){
+  if(token){enterPortal();}
+  else{document.getElementById('loginScreen').style.display='flex';}
+})();
 </script>
+
 </body>
 </html>
