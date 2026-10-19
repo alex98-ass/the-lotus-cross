@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Lotus Cross — Member Portal</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap');
+:root{--bg:#0a0a0f;--bg2:#121119;--card:rgba(255,255,255,0.03);--gold:#c9a227;--gold-light:#e8c856;--purple:#7b6ba8;--text:#e8e6e3;--muted:#9b9b9b;--border:rgba(201,162,39,0.15);--green:#4a9d7f;--red:#c94a4a}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);line-height:1.7}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center}
+nav .logo{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:600;color:var(--gold);letter-spacing:1px}
+nav ul{display:flex;gap:1.8rem;list-style:none}
+nav ul a{color:var(--muted);text-decoration:none;font-size:.8rem;text-transform:uppercase;letter-spacing:1.5px;transition:color .3s;cursor:pointer}
+nav ul a:hover,nav ul a.active{color:var(--gold)}
+nav .nav-right{display:flex;gap:1rem;align-items:center}
+nav .rank-badge{background:rgba(201,162,39,.15);border:1px solid var(--border);color:var(--gold);padding:.4rem 1rem;border-radius:2px;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+nav .btn-logout{color:var(--muted);text-decoration:none;font-size:.8rem;cursor:pointer;background:none;border:none;font-family:inherit}
+nav .btn-logout:hover{color:var(--red)}
+.dashboard{padding:6rem 2rem 4rem;max-width:1200px;margin:0 auto}
+.welcome{text-align:center;margin-bottom:3rem}
+.welcome h1{font-family:'Cormorant Garamond',serif;font-size:2.5rem;font-weight:400;margin-bottom:.5rem;letter-spacing:1px}
+.welcome h1 .gold{color:var(--gold);font-style:italic}
+.welcome p{color:var(--muted);font-size:1.1rem;font-style:italic;font-family:'Cormorant Garamond',serif}
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.tab-btn{background:none;border:none;color:var(--muted);padding:1rem 1.5rem;font-size:.85rem;text-transform:uppercase;letter-spacing:1.5px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .3s;border-bottom:2px solid transparent;position:relative;bottom:-1px}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
+.tab-content{display:none;padding-top:2.5rem}
+.tab-content.active{display:block;animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.card{background:var(--card);border:1px solid var(--border);padding:2rem;margin-bottom:1.5rem}
+.card h2{font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:500;margin-bottom:.5rem;color:var(--text)}
+.card .card-label{font-size:.75rem;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:1rem}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;margin-bottom:2rem}
+.stat-card{background:var(--card);border:1px solid var(--border);padding:1.8rem 1.5rem;text-align:center}
+.stat-card .stat-icon{font-size:1.8rem;margin-bottom:.8rem;opacity:.8}
+.stat-card .stat-value{font-family:'Cormorant Garamond',serif;font-size:2.5rem;font-weight:600;color:var(--gold);line-height:1}
+.stat-card .stat-label{font-size:.75rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-top:.5rem}
+.progress-section{margin:2rem 0}
+.progress-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
+.progress-label span:first-child{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.progress-label span:last-child{font-size:.85rem;color:var(--gold);font-weight:600}
+.progress-bar{height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:3px;transition:width .8s ease}
+.rank-display{display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap}
+.rank-display .rank-icon{font-size:3rem;opacity:.9}
+.rank-display .rank-info h3{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:600;color:var(--gold);margin-bottom:.2rem}
+.rank-display .rank-info p{color:var(--muted);font-size:.9rem;margin:0}
+.task-item{background:var(--card);border:1px solid var(--border);padding:1.5rem;margin-bottom:1rem;display:flex;align-items:flex-start;gap:1.2rem;transition:all .3s;cursor:pointer}
+.task-item:hover{border-color:rgba(201,162,39,.3)}
+.task-item.completed{opacity:.5}
+.task-item.completed .task-title{text-decoration:line-through;color:var(--muted)}
+.task-checkbox{width:24px;height:24px;border:2px solid var(--border);border-radius:50%;flex-shrink:0;margin-top:.2rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .3s}
+.task-checkbox.checked{background:var(--green);border-color:var(--green)}
+.task-checkbox.checked::after{content:'✓';color:#fff;font-size:.8rem;font-weight:bold}
+.task-content{flex:1}
+.task-title{font-size:1rem;font-weight:500;color:var(--text);margin-bottom:.3rem}
+.task-desc{font-size:.85rem;color:var(--muted);line-height:1.6}
+.task-xp{font-size:.75rem;color:var(--gold);margin-top:.5rem;text-transform:uppercase;letter-spacing:1px}
+.instruction-block{margin-bottom:2rem}
+.instruction-block h3{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:500;color:var(--gold);margin-bottom:1rem}
+.instruction-block ol,.instruction-block ul{padding-left:1.5rem;color:var(--muted);line-height:2}
+.instruction-block li{margin-bottom:.5rem}
+.instruction-block strong{color:var(--text)}
+.ranks-table{width:100%;border-collapse:collapse}
+.ranks-table th,.ranks-table td{padding:1rem;border-bottom:1px solid var(--border);text-align:left}
+.ranks-table th{font-size:.75rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold)}
+.ranks-table td{color:var(--muted);font-size:.9rem}
+.ranks-table td:first-child{font-size:1.5rem;width:50px}
+.ranks-table tr.current-rank{background:rgba(201,162,39,.05)}
+.ranks-table tr.current-rank td{color:var(--text)}
+.donate-box{text-align:center;padding:3rem 2rem;background:linear-gradient(135deg,rgba(201,162,39,.06),rgba(123,107,168,.04));border:1px solid rgba(201,162,39,.25);margin-top:2rem}
+.donate-box h3{font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--gold);margin-bottom:1rem}
+.donate-box p{color:var(--muted);max-width:500px;margin:0 auto 2rem;line-height:1.8}
+.donate-options{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:1.5rem}
+.donate-btn{background:var(--gold);color:#000;padding:.8rem 1.8rem;border:none;border-radius:2px;font-size:.85rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:all .3s;font-family:'Inter',sans-serif}
+.donate-btn:hover{background:var(--gold-light);transform:translateY(-2px)}
+.donate-note{font-size:.8rem;color:var(--muted);margin-top:1rem}
+.community-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin-top:1.5rem}
+.community-card{background:var(--card);border:1px solid var(--border);padding:2rem;text-align:center}
+.community-card .icon{font-size:2rem;margin-bottom:1rem;opacity:.8}
+.community-card h3{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:500;margin-bottom:.8rem;color:var(--text)}
+.community-card p{font-size:.9rem;color:var(--muted);line-height:1.7}
+.no-member{text-align:center;padding:8rem 2rem}
+.no-member h1{font-family:'Cormorant Garamond',serif;font-size:2.5rem;color:var(--gold);margin-bottom:1rem}
+.no-member p{color:var(--muted);max-width:500px;margin:0 auto 2rem;line-height:1.8}
+.no-member .btn-primary{background:var(--gold);color:#000;padding:1rem 2.5rem;border-radius:2px;font-size:.9rem;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;text-decoration:none;display:inline-block;transition:all .3s}
+.no-member .btn-primary:hover{background:var(--gold-light);transform:translateY(-2px)}
+footer{background:var(--bg2);padding:2rem;text-align:center;border-top:1px solid var(--border);margin-top:4rem}
+footer p{font-size:.8rem;color:var(--muted)}
+footer a{color:var(--gold);text-decoration:none}
+@media(max-width:768px){nav ul{display:none}.welcome h1{font-size:1.8rem}.stats-grid{grid-template-columns:repeat(2,1fr)}.tab-btn{padding:.8rem .8rem;font-size:.75rem}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">✦ The Lotus Cross</div>
+  <ul id="navTabs">
+    <li><a data-tab="dashboard" class="active">Dashboard</a></li>
+    <li><a data-tab="tasks">Daily Tasks</a></li>
+    <li><a data-tab="ranks">Ranks</a></li>
+    <li><a data-tab="guide">Guide</a></li>
+    <li><a data-tab="community">Community</a></li>
+    <li><a data-tab="support">Support Us</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="rank-badge" id="navRankBadge">🌱 Seeker</span>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+
+<div id="noMemberState" class="no-member" style="display:none">
+  <h1>✦ Please sign in</h1>
+  <p>You must be signed in to access the Member Portal.</p>
+  <a href="login.html" class="btn-primary">Sign In →</a>
+</div>
+
+<div id="dashboardMain" class="dashboard" style="display:none">
+  <div class="welcome">
+    <h1>Welcome, <span class="gold" id="memberName">traveller</span></h1>
+    <p id="memberTagline">Every journey begins with a single breath. Continue walking.</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="tasks">Daily Tasks</button>
+    <button class="tab-btn" data-tab="ranks">Ranks</button>
+    <button class="tab-btn" data-tab="guide">Guide</button>
+    <button class="tab-btn" data-tab="community">Community</button>
+    <button class="tab-btn" data-tab="support">Support Us</button>
+  </div>
+
+  <div class="tab-content active" id="tab-dashboard">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-icon">🌱</div><div class="stat-value" id="statRank">0</div><div class="stat-label">Current Rank</div></div>
+      <div class="stat-card"><div class="stat-icon">⚡</div><div class="stat-value" id="statXP">0</div><div class="stat-label">Total XP</div></div>
+      <div class="stat-card"><div class="stat-icon">✓</div><div class="stat-value" id="statTasks">0</div><div class="stat-label">Tasks Done</div></div>
+      <div class="stat-card"><div class="stat-icon">🔥</div><div class="stat-value" id="statStreak">0</div><div class="stat-label">Day Streak</div></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Your Progress</div>
+      <h2>Path to Next Rank</h2>
+      <div class="rank-display" id="rankDisplay"></div>
+      <div class="progress-section">
+        <div class="progress-label"><span id="progressTitle">Progress to Initiate</span><span id="progressNumbers">0 / 7 tasks</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      </div>
+      <p id="rankHint" style="color:var(--muted);font-size:.9rem;margin-top:1rem"></p>
+    </div>
+    <div class="card">
+      <div class="card-label">Today</div>
+      <h2>Daily Practice</h2>
+      <p style="color:var(--muted);margin-bottom:1.5rem">Complete today's tasks to earn XP and advance your rank.</p>
+      <a href="#" onclick="showTab('tasks');return false" class="donate-btn" style="text-decoration:none">View Today's Tasks →</a>
+    </div>
+    <div class="card">
+      <div class="card-label">Your Journey</div>
+      <h2>Member Since</h2>
+      <p style="color:var(--muted)" id="enrolledDate">—</p>
+      <p style="color:var(--muted);margin-top:.5rem;font-size:.9rem" id="memberTradition">—</p>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-tasks">
+    <div class="card">
+      <div class="card-label">Daily Practice</div>
+      <h2>Today's Sacred Tasks</h2>
+      <p style="color:var(--muted);margin-bottom:2rem">Each task cultivates love, awareness, and righteous action. Complete them mindfully — not as chores, but as practice.</p>
+      <div id="taskList"></div>
+      <div id="allTasksDone" style="display:none;text-align:center;padding:2rem;color:var(--gold);font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-style:italic">
+        ✦ You have completed all tasks for today. Return tomorrow to continue your practice.<br><span style="font-size:.9rem;color:var(--muted);font-style:normal">The path is walked one day at a time.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-ranks">
+    <div class="card">
+      <div class="card-label">Path of Ascension</div>
+      <h2>The Five Ranks</h2>
+      <p style="color:var(--muted);margin-bottom:2rem">Your rank reflects your commitment, not your worth. Advance by completing daily tasks and embodying the teachings.</p>
+      <table class="ranks-table" id="ranksTable"></table>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-guide">
+    <div class="card">
+      <div class="card-label">How to Participate</div>
+      <h2>The Member's Guide</h2>
+      <div class="instruction-block">
+        <h3>🌱 Getting Started (Seeker)</h3>
+        <ol>
+          <li><strong>Complete your daily tasks.</strong> Log in daily and complete the 5 sacred tasks. Each earns XP and advances your rank.</li>
+          <li><strong>Maintain your streak.</strong> Consecutive days build a streak. Breaks reset it but not your progress.</li>
+          <li><strong>Study the teachings.</strong> Read the Three Paths on the main site. Reflect on how they connect.</li>
+          <li><strong>Live the values.</strong> Practice love, awareness, and righteous action in everything you do.</li>
+        </ol>
+      </div>
+      <div class="instruction-block">
+        <h3>🌿 Advancing to Initiate (Rank 1)</h3>
+        <ul><li>Complete <strong>7 daily tasks</strong></li><li>Take the <strong>Vow of Harmony</strong></li><li>Begin <strong>mentoring newer Seekers</strong></li></ul>
+      </div>
+      <div class="instruction-block">
+        <h3>🔥 Becoming a Disciple (Rank 2)</h3>
+        <ul><li>Complete <strong>30+ daily tasks</strong></li><li>Lead a <strong>study circle</strong></li><li>Organise a <strong>community service event</strong></li><li>Begin <strong>teaching the basics</strong></li></ul>
+      </div>
+      <div class="instruction-block">
+        <h3>⭐ Rising to Elder (Rank 3)</h3>
+        <ul><li>Complete <strong>90+ daily tasks</strong></li><li>Serve as a <strong>community guide</strong></li><li>Represent us in <strong>interfaith dialogue</strong></li><li>Be a <strong>living example</strong></li></ul>
+      </div>
+      <div class="instruction-block">
+        <h3>✦ Reaching Guide (Rank 4)</h3>
+        <ul><li>The highest rank, earned through <strong>years of devoted service</strong></li><li>Guides shape the community's direction</li><li>Selected by consensus of Guides and Elders</li></ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">Daily Practice</div>
+      <h2>What the Tasks Mean</h2>
+      <div class="instruction-block">
+        <h3>The Five Daily Tasks</h3>
+        <ul>
+          <li><strong>Meditation (10 minutes)</strong> — The Way of Awareness. Sit still. Breathe. Observe your mind.</li>
+          <li><strong>Act of Kindness</strong> — The Way of Love. One deliberate act of kindness for another.</li>
+          <li><strong>Scripture Reading</strong> — Read a passage from any sacred text. Reflect on its meaning.</li>
+          <li><strong>Mindful Action</strong> — The Way of Order. Perform one task with full mindful awareness.</li>
+          <li><strong>Self-Reflection</strong> — At day's end, reflect on what you did well and what karma you created.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-community">
+    <div class="card">
+      <div class="card-label">Our Community</div>
+      <h2>Walk Together</h2>
+      <p style="color:var(--muted);margin-bottom:2rem">The path is not walked alone. Here's how to get involved:</p>
+      <div class="community-grid">
+        <div class="community-card"><div class="icon">🌐</div><h3>Online Gatherings</h3><p>Monthly virtual study circles and meditation sessions. Dates shared via email.</p></div>
+        <div class="community-card"><div class="icon">👥</div><h3>Local Chapters</h3><p>In-person gatherings in cities with enough members.</p></div>
+        <div class="community-card"><div class="icon">📖</div><h3>Study Circles</h3><p>Small groups reading sacred texts together.</p></div>
+        <div class="community-card"><div class="icon">🤝</div><h3>Mentorship</h3><p>Experienced members guide newer Seekers.</p></div>
+        <div class="community-card"><div class="icon">🌍</div><h3>Service Projects</h3><p>Volunteer work — food drives, cleanup, shelter support.</p></div>
+        <div class="community-card"><div class="icon">💬</div><h3>Discussion Forum</h3><p>Share insights and connect. Coming soon.</p></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">Community Values</div>
+      <h2>How We Treat Each Other</h2>
+      <div class="instruction-block">
+        <ul>
+          <li><strong>Respect all paths.</strong> No tradition is superior.</li>
+          <li><strong>No proselytising.</strong> Share experience; do not impose beliefs.</li>
+          <li><strong>Confidentiality.</strong> What is shared stays in the community.</li>
+          <li><strong>Kindness first.</strong> Disagree without disrespect.</li>
+          <li><strong>Service over status.</strong> Ranks are for organisation, not hierarchy.</li>
+          <li><strong>Voluntary participation.</strong> You may leave at any time.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-support">
+    <div class="card">
+      <div class="card-label">Support Our Mission</div>
+      <h2>Help Us Grow</h2>
+      <p style="color:var(--muted);margin-bottom:2rem;line-height:1.9">The Lotus Cross is funded entirely by its members. All amounts are voluntary. There is no obligation — ever.</p>
+      <div class="instruction-block">
+        <h3>💎 Ways to Support</h3>
+        <ul>
+          <li><strong>One-time donation</strong> — Any amount helps sustain our work.</li>
+          <li><strong>Monthly patronage</strong> — From £5/month. Patrons receive exclusive study materials.</li>
+          <li><strong>Spread the word</strong> — Share The Lotus Cross with those who might resonate.</li>
+          <li><strong>Volunteer your skills</strong> — Design, writing, video, teaching.</li>
+          <li><strong>Attend events</strong> — Your presence is a form of support.</li>
+        </ul>
+      </div>
+      <div class="donate-box">
+        <h3>✦ Give From the Heart</h3>
+        <p>"Each of you should give what you have decided in your heart to give, not reluctantly or under compulsion, for God loves a cheerful giver." — 2 Corinthians 9:7</p>
+        <div class="donate-options">
+          <button class="donate-btn" onclick="alert('Donation system coming soon. Contact hello@thelotuscross.org')">£5 One-Time</button>
+          <button class="donate-btn" onclick="alert('Donation system coming soon. Contact hello@thelotuscross.org')">£10 One-Time</button>
+          <button class="donate-btn" onclick="alert('Donation system coming soon. Contact hello@thelotuscross.org')">£25 One-Time</button>
+          <button class="donate-btn" style="background:var(--purple);color:#fff" onclick="alert('Donation system coming soon. Contact hello@thelotuscross.org')">£5 / Month Patron</button>
+        </div>
+        <p class="donate-note">The Lotus Cross is a spiritual community, not a registered charity yet. Donations are not tax-deductible.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>✦ The Lotus Cross — Where the paths converge into one.</p>
+  <p>© 2026 The Lotus Cross. <a href="index.html">← Return to main site</a></p>
+</footer>
+
+<script>
+var RANKS=[
+  {id:0,name:'Seeker',icon:'🌱',xpNeeded:7,desc:'Newly enrolled. Learning the Three Paths.'},
+  {id:1,name:'Initiate',icon:'🌿',xpNeeded:30,desc:'Committed. Studying, mentoring, serving.'},
+  {id:2,name:'Disciple',icon:'🔥',xpNeeded:90,desc:'Dedicated. Leading study circles and service.'},
+  {id:3,name:'Elder',icon:'⭐',xpNeeded:200,desc:'Leader. Guides the community.'},
+  {id:4,name:'Guide',icon:'✦',xpNeeded:500,desc:'Teacher. Keeper of the teachings.'}
+];
+var DAILY_TASKS=[
+  {id:'meditate',title:'Meditation (10 minutes)',desc:'Sit in stillness. Breathe. Observe your mind without judgment. This is the Buddha\'s medicine for suffering.',xp:10},
+  {id:'kindness',title:'Act of Kindness',desc:'Do one deliberate act of kindness for another person. No matter how small. This is Christ\'s teaching in action.',xp:10},
+  {id:'scripture',title:'Scripture Reading',desc:'Read a passage from any sacred text (Bible, Dhammapada, Bhagavad Gita). Reflect on its meaning for your life today.',xp:10},
+  {id:'mindful',title:'Mindful Action',desc:'Perform one daily task (washing dishes, walking, eating) with full mindful awareness. Do one thing at a time.',xp:10},
+  {id:'reflect',title:'Self-Reflection',desc:'At day\'s end, reflect: What did I do well? What could I do better? What karma did I create today?',xp:10}
+];
+
+function getToken(){return localStorage.getItem('lotus_token');}
+function api(path,opts){
+  return fetch(path,Object.assign({headers:{'Content-Type':'application/json','Authorization':'Bearer '+getToken()}},opts||{}))
+    .then(r=>r.json().then(d=>({ok:r.ok,d})));
+}
+
+function init(){
+  var token=getToken();
+  if(!token){document.getElementById('noMemberState').style.display='block';document.getElementById('dashboardMain').style.display='none';return;}
+  document.getElementById('noMemberState').style.display='none';
+  document.getElementById('dashboardMain').style.display='block';
+  loadDashboard();
+}
+
+function loadDashboard(){
+  api('/api/member/dashboard').then(({ok,d})=>{
+    if(!ok){if(d.error==='Not authenticated'){localStorage.removeItem('lotus_token');window.location.href='login.html';}return;}
+    var u=d.user;
+    document.getElementById('memberName').textContent=u.name||'traveller';
+    document.getElementById('statRank').textContent=u.rank;
+    document.getElementById('statXP').textContent=u.xp;
+    document.getElementById('statTasks').textContent=u.tasks_completed;
+    document.getElementById('statStreak').textContent=u.streak||0;
+    var rank=RANKS[u.rank];
+    document.getElementById('navRankBadge').textContent=rank.icon+' '+rank.name;
+    if(u.enrolled_at){document.getElementById('enrolledDate').textContent='Enrolled on '+new Date(u.enrolled_at).toLocaleDateString('en-GB',{year:'numeric',month:'long',day:'numeric'});}
+    if(u.tradition){document.getElementById('memberTradition').textContent='Path: '+u.tradition;}
+    var rd='<div class="rank-icon">'+rank.icon+'</div><div class="rank-info"><h3>'+rank.name+'</h3><p>'+rank.desc+'</p></div>';
+    document.getElementById('rankDisplay').innerHTML=rd;
+    if(u.rank<4){
+      var next=RANKS[u.rank+1];
+      var pct=Math.min(100,Math.round((u.tasks_completed/next.xpNeeded)*100));
+      document.getElementById('progressTitle').textContent='Progress to '+next.name;
+      document.getElementById('progressNumbers').textContent=u.tasks_completed+' / '+next.xpNeeded+' tasks';
+      document.getElementById('progressFill').style.width=pct+'%';
+      var rem=next.xpNeeded-u.tasks_completed;
+      document.getElementById('rankHint').textContent=rem>0?'Complete '+rem+' more '+(rem===1?'task':'tasks')+' to advance to '+next.name+'.':'You are ready to advance to '+next.name+'!';
+    } else {
+      document.getElementById('progressTitle').textContent='Highest Rank Achieved';
+      document.getElementById('progressNumbers').textContent='✦ Guide';
+      document.getElementById('progressFill').style.width='100%';
+      document.getElementById('rankHint').textContent='You have reached the highest rank. The path continues through service.';
+    }
+    renderTasks(d.doneToday);
+    renderRanks(u.rank);
+  });
+}
+
+function renderTasks(doneToday){
+  var list=document.getElementById('taskList');
+  var html='';var allDone=true;
+  DAILY_TASKS.forEach(function(t){
+    var isDone=doneToday.indexOf(t.id)!==-1;
+    if(!isDone)allDone=false;
+    html+='<div class="task-item'+(isDone?' completed':'')+'" onclick="toggleTask(\''+t.id+'\')">'+
+      '<div class="task-checkbox'+(isDone?' checked':'')+'"></div>'+
+      '<div class="task-content"><div class="task-title">'+t.title+'</div><div class="task-desc">'+t.desc+'</div><div class="task-xp">+'+t.xp+' XP</div></div></div>';
+  });
+  list.innerHTML=html;
+  document.getElementById('allTasksDone').style.display=allDone?'block':'none';
+}
+
+function toggleTask(taskId){
+  api('/api/member/task',{method:'POST',body:JSON.stringify({taskId})}).then(({ok})=>{
+    if(ok)loadDashboard();
+  });
+}
+
+function renderRanks(currentRank){
+  var table=document.getElementById('ranksTable');
+  var html='<tr><th></th><th>Rank</th><th>Tasks Required</th><th>Description</th></tr>';
+  RANKS.forEach(function(r){
+    var isCurrent=r.id===currentRank;
+    html+='<tr class="'+(isCurrent?'current-rank':'')+'"><td>'+r.icon+'</td><td><strong style="color:'+(isCurrent?'var(--gold)':'var(--text)')+'">'+r.name+'</strong></td><td>'+(r.id===0?'0':r.xpNeeded)+'</td><td>'+r.desc+'</td></tr>';
+  });
+  table.innerHTML=html;
+}
+
+function showTab(tabName){
+  document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('tab-'+tabName).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(function(b){if(b.dataset.tab===tabName)b.classList.add('active');});
+  document.querySelectorAll('#navTabs a').forEach(function(a){a.classList.remove('active');if(a.dataset.tab===tabName)a.classList.add('active');});
+  window.scrollTo(0,0);
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.addEventListener('click',function(){showTab(b.dataset.tab);});});
+  document.querySelectorAll('#navTabs a').forEach(function(a){if(a.dataset.tab){a.addEventListener('click',function(e){e.preventDefault();showTab(a.dataset.tab);});}});
+  init();
+});
+
+function logout(){
+  api('/api/logout',{method:'POST'}).finally(function(){
+    localStorage.removeItem('lotus_token');
+    localStorage.removeItem('lotus_user');
+    window.location.href='login.html';
+  });
+}
+</script>
+</body>
+</html>

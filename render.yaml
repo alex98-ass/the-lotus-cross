@@ -1,0 +1,23 @@
+# Render.com blueprint — deploy The Lotus Cross
+# Free tier: spins down after 15 min idle, wakes on first request (~50s).
+services:
+  - type: web
+    name: the-lotus-cross
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false   # set manually from your Supabase connection string
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false

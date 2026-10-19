@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Lotus Cross — The Unified Path</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg: #0a0a0f;
+  --bg2: #121119;
+  --card: rgba(255,255,255,0.03);
+  --gold: #c9a227;
+  --gold-light: #e8c856;
+  --purple: #7b6ba8;
+  --text: #e8e6e3;
+  --text-muted: #9b9b9b;
+  --border: rgba(201,162,39,0.15);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* ===== NAV ===== */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  background: rgba(10,10,15,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+nav .logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+nav ul {
+  display: flex;
+  gap: 2rem;
+  list-style: none;
+}
+
+nav ul a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  transition: color 0.3s;
+}
+
+nav ul a:hover { color: var(--gold); }
+
+nav .btn-nav {
+  background: var(--gold);
+  color: #000;
+  padding: 0.6rem 1.5rem;
+  border-radius: 2px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+nav .btn-nav:hover {
+  background: var(--gold-light);
+  transform: translateY(-1px);
+}
+
+/* ===== HERO ===== */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  padding: 2rem;
+  background: radial-gradient(ellipse at 50% 30%, rgba(123,107,168,0.08) 0%, transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(201,162,39,0.05) 0%, transparent 50%);
+}
+
+.hero-content { max-width: 800px; }
+
+.hero .symbol {
+  font-size: 3.5rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.8;
+  letter-spacing: 0.5rem;
+  filter: drop-shadow(0 0 20px rgba(201,162,39,0.15));
+}
+
+.hero h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 300;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  letter-spacing: 2px;
+}
+
+.hero h1 .accent { color: var(--gold); font-weight: 600; font-style: italic; }
+
+.hero .tagline {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  color: var(--text-muted);
+  margin-bottom: 2.5rem;
+  font-style: italic;
+  letter-spacing: 0.5px;
+}
+
+.hero .subtitle {
+  font-size: 1rem;
+  color: var(--text-muted);
+  max-width: 580px;
+  margin: 0 auto 3rem;
+  line-height: 1.9;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  background: var(--gold);
+  color: #000;
+  padding: 1rem 2.5rem;
+  border-radius: 2px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.btn-primary:hover {
+  background: var(--gold-light);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(201,162,39,0.2);
+}
+
+.btn-secondary {
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 1rem 2.5rem;
+  border-radius: 2px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.btn-secondary:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.scroll-indicator {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.5;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* ===== SECTIONS ===== */
+section { padding: 6rem 2rem; }
+
+.container { max-width: 1100px; margin: 0 auto; }
+
+.section-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: var(--gold);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.section-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 400;
+  text-align: center;
+  margin-bottom: 1rem;
+  letter-spacing: 1px;
+}
+
+.section-subtitle {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  max-width: 600px;
+  margin: 0 auto 4rem;
+  font-style: italic;
+  font-family: 'Cormorant Garamond', serif;
+}
+
+.divider {
+  width: 60px;
+  height: 1px;
+  background: var(--gold);
+  margin: 0 auto 3rem;
+  opacity: 0.5;
+}
+
+/* ===== ABOUT ===== */
+.about {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.about-text {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+  font-size: 1.1rem;
+  line-height: 2;
+  color: var(--text-muted);
+}
+
+.about-text strong { color: var(--text); font-weight: 500; }
+.about-text em { color: var(--gold); }
+
+/* ===== PILLARS ===== */
+.pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.pillar {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 3rem 2rem;
+  text-align: center;
+  transition: all 0.4s;
+  position: relative;
+  overflow: hidden;
+}
+
+.pillar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.pillar:hover {
+  border-color: rgba(201,162,39,0.3);
+  transform: translateY(-4px);
+}
+
+.pillar:hover::before { opacity: 1; }
+
+.pillar .icon {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  display: block;
+}
+
+.pillar h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.pillar .pillar-subtitle {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  margin-bottom: 1.5rem;
+}
+
+.pillar p {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.8;
+}
+
+/* ===== KARMA BANNER ===== */
+.karma-banner {
+  background: linear-gradient(135deg, rgba(123,107,168,0.06), rgba(201,162,39,0.04));
+  border: 1px solid var(--border);
+  margin: 0 2rem;
+}
+
+.karma-quote {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-weight: 300;
+  font-style: italic;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.karma-quote .gold { color: var(--gold); }
+
+.karma-attribution {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ===== ENROLLMENT ===== */
+.enroll {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+}
+
+.form-wrapper {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  margin-bottom: 0.6rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.9rem 1rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  border-radius: 2px;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.form-group textarea { resize: vertical; min-height: 100px; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.form-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  margin-bottom: 2rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.form-checkbox input {
+  width: auto;
+  margin-top: 0.2rem;
+}
+
+.form-checkbox a { color: var(--gold); text-decoration: none; }
+
+.btn-submit {
+  width: 100%;
+  background: var(--gold);
+  color: #000;
+  padding: 1.1rem;
+  border: none;
+  border-radius: 2px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'Inter', sans-serif;
+}
+
+.btn-submit:hover {
+  background: var(--gold-light);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(201,162,39,0.2);
+}
+
+.form-success {
+  display: none;
+  text-align: center;
+  padding: 3rem 2rem;
+  background: var(--card);
+  border: 1px solid rgba(201,162,39,0.3);
+}
+
+.form-success h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.8rem;
+  color: var(--gold);
+  margin-bottom: 1rem;
+}
+
+.form-success p { color: var(--text-muted); }
+
+/* ===== CONTACT ===== */
+.contact {
+  text-align: center;
+  padding: 4rem 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.contact-info {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.contact-item {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.contact-item a { color: var(--gold); text-decoration: none; }
+.contact-item a:hover { text-decoration: underline; }
+
+/* ===== FOOTER ===== */
+footer {
+  background: var(--bg2);
+  padding: 3rem 2rem;
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+
+footer .logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem;
+  color: var(--gold);
+  margin-bottom: 1rem;
+}
+
+footer p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+footer .social {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+footer .social a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: color 0.3s;
+}
+
+footer .social a:hover { color: var(--gold); }
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+  nav ul { display: none; }
+  nav .btn-nav { display: none; }
+  nav { justify-content: center; }
+  .form-row { grid-template-columns: 1fr; }
+  .hero-cta { flex-direction: column; align-items: center; }
+  .hero-cta a { width: 100%; max-width: 300px; text-align: center; }
+  section { padding: 4rem 1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">✦ The Lotus Cross</div>
+  <ul>
+    <li><a href="#about">About</a></li>
+    <li><a href="#paths">The Three Paths</a></li>
+    <li><a href="#ranks">Ranks</a></li>
+    <li><a href="#enroll">Enroll</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+  <a href="login.html" class="btn-nav" style="margin-right:.5rem">Sign In</a>
+    <a href="#enroll" class="btn-nav">Join Us</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-content">
+    <div class="symbol">☸ ✝ 🕉</div>
+    <h1>The <span class="accent">Lotus</span> Cross</h1>
+    <p class="tagline">Where the paths converge into one.</p>
+    <p class="subtitle">
+      A living spiritual community born from the eternal truth that no single tradition holds the whole of the divine.
+      We walk together — Christian grace, Buddhist compassion, Hindu wisdom, and the unbreakable law of karma — as one unified path toward the sacred.
+    </p>
+    <div class="hero-cta">
+      <a href="#enroll" class="btn-primary">Begin Your Journey</a>
+      <a href="#about" class="btn-secondary">Learn More</a>
+    </div>
+  </div>
+  <div class="scroll-indicator">↓ scroll</div>
+</div>
+
+<!-- ABOUT -->
+<section id="about" class="about">
+  <div class="container">
+    <div class="section-label">Our Vision</div>
+    <h2 class="section-title">One Light, Many Lanterns</h2>
+    <div class="divider"></div>
+    <div class="about-text">
+      <p>
+        For too long, the great spiritual traditions of humanity have been treated as separate, competing paths — as if the same light could not shine through different lanterns. <strong>The Lotus Cross</strong> was born from a simple, radical conviction: that <em>all of them are true</em>, and that each one carries a piece of the eternal truth that no single voice could ever hold alone.
+      </p>
+      <br>
+      <p>
+        We do not ask you to abandon your faith. We ask you to <strong>expand it</strong>. To see that the grace of Christ, the compassion of the Buddha, the cosmic wisdom of the Vedas, and the moral law of karma are not contradictions — they are <em>harmonics of the same sacred chord</em>. Together, they form a path older than any of them alone: the path of <strong>love, awareness, and consequence</strong>.
+      </p>
+      <br>
+      <p>
+        This is not a religion of conversion. It is a religion of <strong>convergence</strong>. You are not asked to kneel — you are asked to <em>awaken</em>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- THREE PATHS -->
+<section id="paths">
+  <div class="container">
+    <div class="section-label">The Three Paths</div>
+    <h2 class="section-title">The Foundations of Our Faith</h2>
+    <div class="divider"></div>
+    <div class="pillars-grid">
+
+      <div class="pillar">
+        <span class="icon">✝</span>
+        <h3>The Way of Love</h3>
+        <div class="pillar-subtitle">Christianity</div>
+        <p>
+          Christ taught that the greatest commandment is love — love of God, love of neighbour, love of enemy. We hold this teaching as the emotional heart of our practice: that compassion is not a feeling but a way of being, and that grace is real, freely given, and transformative. We study the Sermon on the Mount as a living manual for the soul.
+        </p>
+      </div>
+
+      <div class="pillar">
+        <span class="icon">☸</span>
+        <h3>The Way of Awareness</h3>
+        <div class="pillar-subtitle">Buddhism</div>
+        <p>
+          The Buddha taught that suffering arises from attachment and ignorance, and that liberation comes through mindful awareness of the present moment. We hold this as the <em>mental</em> foundation of our path — meditation, contemplation, and the clear seeing of reality as it is, not as we wish it to be. Stillness is our medicine.
+        </p>
+      </div>
+
+      <div class="pillar">
+        <span class="icon">🕉</span>
+        <h3>The Way of Order</h3>
+        <div class="pillar-subtitle">Hinduism</div>
+        <p>
+          The Vedas teach that the universe is governed by <em>Dharma</em> — a cosmic order, a sacred structure within which all beings have their place and duty. We honour this as the <em>spiritual</em> framework of our path: that there is a design to existence, that every soul is an expression of the same divine consciousness, and that our lives are sacred participation in that order.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- KARMA BANNER -->
+<section class="karma-banner">
+  <div class="container">
+    <div class="section-label">The Unbreakable Law</div>
+    <h2 class="section-title">Karma</h2>
+    <div class="divider"></div>
+    <p class="karma-quote">
+      <span class="gold">"As you sow, so shall you reap."</span><br>
+      <span class="gold">"What you do to the least of these, you do to Me."</span><br>
+      <span class="gold">"Every action leaves a mark upon the fabric of reality."</span>
+    </p>
+    <p class="karma-attribution">— Christ · Buddha · The Vedas</p>
+    <div style="max-width: 620px; margin: 2rem auto 0; text-align: center; color: var(--text-muted); font-size: 1rem; line-height: 1.9;">
+      Karma is the bridge that unites our three paths. It is the moral physics of the soul — the understanding that <strong style="color: var(--text);">no action is ever lost</strong>, that kindness given returns, that harm done remains, and that the life you build tomorrow is being shaped by the choices you make today. We do not fear karma. We <em>honour</em> it — as proof that the universe is just, that our choices matter, and that we are the architects of our own spiritual destiny.
+    </div>
+  </div>
+</section>
+
+<!-- RANKS PREVIEW -->
+<section id="ranks">
+  <div class="container">
+    <div class="section-label">The Path of Ascension</div>
+    <h2 class="section-title">Ranks & Progression</h2>
+    <div class="divider"></div>
+    <p class="section-subtitle">Every member walks the same path — but not at the same pace. Your rank reflects your commitment, not your worth. All who walk are equal; some have simply walked longer.</p>
+    <div class="pillars-grid">
+      <div class="pillar"><span class="icon">🌱</span><h3>Seeker</h3><div class="pillar-subtitle">Rank 0 · Entry</div><p>Newly enrolled. Learning the Three Paths. Completing daily tasks. Building the habit of practice. 7 completed tasks to advance.</p></div>
+      <div class="pillar"><span class="icon">🌿</span><h3>Initiate</h3><div class="pillar-subtitle">Rank 1 · Committed</div><p>Has completed 7 daily tasks and taken the Vow of Harmony. Studying scripture, mentoring newer Seekers, contributing to community life.</p></div>
+      <div class="pillar"><span class="icon">🔥</span><h3>Disciple</h3><div class="pillar-subtitle">Rank 2 · Dedicated</div><p>30+ tasks completed. Leads study circles. Organises community service. Begins teaching the basics to new members.</p></div>
+      <div class="pillar"><span class="icon">⭐</span><h3>Elder</h3><div class="pillar-subtitle">Rank 3 · Leader</div><p>90+ tasks completed. Guides the community. Resolves conflicts. Represents The Lotus Cross in interfaith dialogue.</p></div>
+      <div class="pillar"><span class="icon">✦</span><h3>Guide</h3><div class="pillar-subtitle">Rank 4 · Teacher</div><p>The highest rank. Guides Elders. Shapes the direction of the community. A keeper of the teaching. Earned through years of devoted service.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ENROLLMENT -->
+<section id="enroll" class="enroll">
+  <div class="container">
+    <div class="section-label">Enrollment</div>
+    <h2 class="section-title">Take the First Step</h2>
+    <div class="divider"></div>
+    <p class="section-subtitle">Joining The Lotus Cross is free and begins with intention. Fill out the form below and you will receive a personal welcome, our introductory teachings, and information about gatherings near you.</p>
+
+    <div class="form-wrapper">
+      <form id="enrollmentForm" onsubmit="return submitForm(event)">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" name="name" id="enr_name" required placeholder="Your name">
+          </div>
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" name="email" id="enr_email" required placeholder="you@email.com">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Country</label>
+            <input type="text" name="country" id="enr_country" required placeholder="e.g. United Kingdom">
+          </div>
+          <div class="form-group">
+            <label>Age</label>
+            <input type="number" name="age" id="enr_age" min="18" required placeholder="Must be 18+">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Which tradition resonates most with you?</label>
+          <select name="tradition" id="enr_tradition" required>
+            <option value="" disabled selected>Select one...</option>
+            <option>Christianity (The Way of Love)</option>
+            <option>Buddhism (The Way of Awareness)</option>
+            <option>Hinduism (The Way of Order)</option>
+            <option>All three equally</option>
+            <option>I am new to all of them</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>What draws you to The Lotus Cross?</label>
+          <textarea name="message" id="enr_message" placeholder="Tell us about your spiritual journey so far (optional)..."></textarea>
+        </div>
+
+        <div class="form-checkbox">
+          <input type="checkbox" name="consent" required>
+          <span>I confirm that I am 18 years or older and I consent to being contacted about my enrollment. I understand that The Lotus Cross is a spiritual community and that participation is always voluntary. I have read and agree to the <a href="#about">community guidelines</a>.</span>
+        </div>
+
+        <button type="submit" class="btn-submit">Enroll Now</button>
+      </form>
+
+      <div class="form-success" id="formSuccess">
+              <h3>✦ Welcome, traveller.</h3>
+              <p>Your enrollment has been submitted. Check your email for confirmation. Once approved, you can sign in to the Member Portal.</p>
+              <a href="login.html" class="btn-primary" style="display:inline-block;margin-top:1rem;text-decoration:none">Go to Sign In →</a>
+            </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact" class="contact">
+  <div class="container">
+    <div class="section-label">Contact</div>
+    <h2 class="section-title">Reach Out</h2>
+    <div class="divider"></div>
+    <div class="contact-info">
+      <div class="contact-item">✉ <a href="mailto:hello@thelotuscross.org">hello@thelotuscross.org</a></div>
+      <div class="contact-item">☷ Gatherings held monthly — locations shared after enrollment</div>
+      <div class="contact-item">✦ Spiritual guidance available 7 days a week</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="logo">✦ The Lotus Cross</div>
+  <p>Where the paths converge into one.</p>
+  <p>© 2026 The Lotus Cross. A spiritual community open to all who seek.</p>
+  <div class="social">
+    <a href="#">Instagram</a>
+    <a href="#">YouTube</a>
+    <a href="#">Newsletter</a>
+  </div>
+</footer>
+
+<script>
+function submitForm(e) {
+  e.preventDefault();
+  const data = {
+    name: document.getElementById('enr_name').value,
+    email: document.getElementById('enr_email').value,
+    country: document.getElementById('enr_country').value,
+    age: document.getElementById('enr_age').value,
+    tradition: document.getElementById('enr_tradition').value,
+    message: document.getElementById('enr_message').value
+  };
+  fetch('/api/enroll', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  .then(r => r.json().then(d => ({ ok: r.ok, d })))
+  .then(({ ok, d }) => {
+    if (!ok) { alert(d.error || 'Enrollment failed'); return; }
+    document.getElementById('enrollmentForm').style.display = 'none';
+    document.getElementById('formSuccess').style.display = 'block';
+  })
+  .catch(() => alert('Network error. Is the server running?'));
+  return false;
+}
+</script>
+
+</body>
+</html>
