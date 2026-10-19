@@ -73,6 +73,13 @@ async function initDb() {
       sort_order INTEGER DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT now()
     );
+    CREATE TABLE IF NOT EXISTS password_resets (
+      token TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      expires_at TIMESTAMPTZ NOT NULL,
+      used BOOLEAN DEFAULT false
+    );
     CREATE TABLE IF NOT EXISTS reflections (
       id SERIAL PRIMARY KEY,
       day_index INTEGER UNIQUE NOT NULL,
@@ -107,6 +114,11 @@ async function initDb() {
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by INTEGER");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code TEXT");
   await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS users_referral_code_idx ON users(referral_code) WHERE referral_code IS NOT NULL");
+  // Backfill invitation codes for existing members
+  await pool.query(`
+    UPDATE users SET referral_code = COALESCE(NULLIF(lower(regexp_replace(split_part(name,' ',1),'[^a-zA-Z]','','g')),''),'friend')
+      || '-' || substr(md5(random()::text || id::text),1,6)
+    WHERE referral_code IS NULL`);
   // Migration: add channel column to messages (for topic channels)
   await pool.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS channel TEXT DEFAULT 'general'");
   // Seed default admin if none exists
@@ -464,10 +476,12 @@ app.post('/api/admin/approve', requireAuth, requireAdmin, async (req, res) => {
   const user = (await pool.query("SELECT * FROM users WHERE id=$1", [userId])).rows[0];
   if (!user) return res.status(404).json({ error: 'User not found' });
   await pool.query("UPDATE users SET status='approved', approved_at=now() WHERE id=$1", [userId]);
+  const link = await issueSetupLink(user);
   sendEmail(user.email, 'You are approved! Welcome to The Lotus Cross',
     `<h2>✦ Welcome, ${user.name}!</h2>
      <p>Your enrollment has been <strong>approved</strong>. You are now a member of The Lotus Cross.</p>
-     <p>Visit the site and log in with your email. Use "Set Password" on the login page if you have not set one.</p>
+     <p>Set your password with this link (valid 7 days):</p>
+     <p><a href="${link}">${link}</a></p>
      <p>Your journey begins now. — The Lotus Cross</p>`);
   res.json({ ok: true });
 });
@@ -537,15 +551,48 @@ app.post('/api/admin/set-rank', requireAuth, requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/set-password', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password || password.length < 6) return res.status(400).json({ error: 'Valid email and password (min 6 chars) required' });
-  const user = (await pool.query("SELECT * FROM users WHERE email=$1", [email.toLowerCase().trim()])).rows[0];
-  if (!user) return res.status(404).json({ error: 'No account found with this email' });
-  const hash = bcrypt.hashSync(password, 10);
-  await pool.query("UPDATE users SET password_hash=$1 WHERE id=$2", [hash, user.id]);
-  res.json({ ok: true, message: 'Password set. You can now log in.' });
+// Password setup/reset — token-based only. Never allow setting a password from an email alone.
+app.post('/api/request-reset', async (req, res) => {
+  try {
+    const email = String(req.body.email || '').toLowerCase().trim();
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    const user = (await pool.query("SELECT id, name, email FROM users WHERE email=$1", [email])).rows[0];
+    // Always answer the same way, so this cannot be used to discover accounts
+    if (user) {
+      const token = crypto.randomBytes(32).toString('hex');
+      await pool.query("INSERT INTO password_resets (token, user_id, expires_at) VALUES ($1,$2,now()+interval '2 hours')", [token, user.id]);
+      const base = process.env.PUBLIC_URL || 'https://the-lotus-cross.onrender.com';
+      sendEmail(user.email, 'Set your password — The Lotus Cross',
+        `<h2>✦ Set your password, ${user.name}</h2>
+         <p>Use this link within 2 hours to choose your password:</p>
+         <p><a href="${base}/portal.html?setpw=${token}">${base}/portal.html?setpw=${token}</a></p>
+         <p>If you did not ask for this, ignore this email — nothing has changed.</p>`);
+    }
+    res.json({ ok: true, message: 'If that email has an account, a link is on its way.' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+app.post('/api/set-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password || String(password).length < 8) return res.status(400).json({ error: 'A valid link and a password of at least 8 characters are required' });
+    const row = (await pool.query(
+      "SELECT * FROM password_resets WHERE token=$1 AND used=false AND expires_at > now()", [String(token)])).rows[0];
+    if (!row) return res.status(400).json({ error: 'This link is invalid or has expired. Request a new one.' });
+    const hash = bcrypt.hashSync(String(password), 10);
+    await pool.query("UPDATE users SET password_hash=$1 WHERE id=$2", [hash, row.user_id]);
+    await pool.query("UPDATE password_resets SET used=true WHERE token=$1", [row.token]);
+    await pool.query("DELETE FROM sessions WHERE user_id=$1", [row.user_id]);
+    res.json({ ok: true, message: 'Password set. You can now log in.' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: issue a setup link for a member (used on approval and on demand)
+async function issueSetupLink(user) {
+  const token = crypto.randomBytes(32).toString('hex');
+  await pool.query("INSERT INTO password_resets (token, user_id, expires_at) VALUES ($1,$2,now()+interval '7 days')", [token, user.id]);
+  return (process.env.PUBLIC_URL || 'https://the-lotus-cross.onrender.com') + '/portal.html?setpw=' + token;
+}
 
 // ===== MESSAGING (community chat + direct messages) =====
 

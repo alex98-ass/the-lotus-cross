@@ -70,15 +70,12 @@ function doLogin(e){
   return false;
 }
 function showSetPassword(){
-  var email=prompt('Enter your email to set a password:');
+  var email=prompt('Enter your email and we will send you a secure link:');
   if(!email)return;
-  var password=prompt('Choose a password (min 6 characters):');
-  if(!password)return;
-  fetch('/api/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})})
+  fetch('/api/request-reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})})
     .then(r=>r.json().then(d=>({ok:r.ok,d})))
     .then(({ok,d})=>{
-      if(ok){showMsg('Password set! You can now sign in.','success');}
-      else{showMsg(d.error||'Error','error');}
+      showMsg(ok?(d.message||'Check your email.'):(d.error||'Error'), ok?'success':'error');
     })
     .catch(()=>showMsg('Network error','error'));
 }
