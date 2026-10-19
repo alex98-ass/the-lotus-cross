@@ -214,10 +214,12 @@ a{color:var(--gold-deep);text-decoration:none}
         <div class="dash-greet">Peace, <em id="dashName">traveller</em>.</div>
         <p class="dash-sub">Continue your journey. Every step matters.</p>
         <div class="quote-card">
-          <div class="q-label">Quote of the Day</div>
+          <div class="q-label" id="reflTitle">Reflection of the Day</div>
           <blockquote id="dashQuote">Seek peace within, and you will find it everywhere.</blockquote>
+          <p id="reflPractice" style="font-size:.9rem;color:var(--muted);margin:.9rem 0 0;font-style:italic"></p>
           <cite id="dashQuoteSrc">— The Wisdom of the Three Paths</cite>
         </div>
+        <p class="dash-sub" id="inviteLine" style="margin-top:-.5rem"></p>
         <div class="stats-grid">
           <div class="stat-card"><div class="stat-ico">🔮</div><div class="stat-val" id="dashRank">Seeker</div><div class="stat-lbl">Current Rank</div></div>
           <div class="stat-card"><div class="stat-ico">⚡</div><div class="stat-val" id="dashXp">0</div><div class="stat-lbl">XP</div></div>
@@ -385,6 +387,10 @@ function switchTab(tab){
 }
 
 // ===== DASHBOARD =====
+function copyInvite(link){
+  if(navigator.clipboard){ navigator.clipboard.writeText(link); }
+  else { var t=document.createElement('textarea'); t.value=link; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+}
 function loadDashboard(){
   api('/api/member/dashboard').then(function(res){
     if(!res.ok){ if(res.d.error==='Not authenticated') logout(); return; }
@@ -396,9 +402,25 @@ function loadDashboard(){
     document.getElementById('dashRank').textContent = rank.name;
     document.getElementById('dashXp').textContent = localXp;
     document.getElementById('dashStreak').textContent = streak;
-    var day = new Date().getDate() % QUOTES.length;
-    document.getElementById('dashQuote').textContent = QUOTES[day].text;
-    document.getElementById('dashQuoteSrc').textContent = QUOTES[day].src;
+    var r = res.d.reflection;
+    if(r){
+      document.getElementById('reflTitle').textContent = r.title || 'Reflection of the Day';
+      document.getElementById('dashQuote').textContent = r.body || '';
+      document.getElementById('reflPractice').textContent = r.practice ? 'Practice: ' + r.practice : '';
+      document.getElementById('dashQuoteSrc').textContent = r.source ? '— ' + r.source : '';
+    } else {
+      var day = new Date().getDate() % QUOTES.length;
+      document.getElementById('dashQuote').textContent = QUOTES[day].text;
+      document.getElementById('dashQuoteSrc').textContent = QUOTES[day].src;
+    }
+    var b = res.d.brought || {total:0, approved:0};
+    var inv = document.getElementById('inviteLine');
+    if(u.referral_code){
+      var link = location.origin + '/index.html?ref=' + encodeURIComponent(u.referral_code);
+      inv.innerHTML = 'You have brought <strong>' + b.approved + '</strong> ' + (b.approved===1?'person':'people') +
+        ' into the community. Your invitation link: <span style="color:var(--gold-deep)">' + link + '</span>' +
+        ' <button onclick="copyInvite(\'' + link + '\')" style="margin-left:.4rem;background:transparent;border:1px solid var(--line);border-radius:6px;padding:.15rem .5rem;cursor:pointer;font-size:.78rem;color:var(--muted)">copy</button>';
+    }
   });
 }
 

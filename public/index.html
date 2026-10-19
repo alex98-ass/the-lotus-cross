@@ -210,10 +210,12 @@ window.addEventListener('scroll',function(){nav.classList.toggle('scrolled',wind
 // Enrollment form — success message stays hidden until a successful submit
 function submitForm(e){
   e.preventDefault();
+  var refParam=new URLSearchParams(window.location.search).get('ref')||'';
   var data={
     name:document.getElementById('enr_name').value,
     email:document.getElementById('enr_email').value,
-    tradition:document.getElementById('enr_tradition').value
+    tradition:document.getElementById('enr_tradition').value,
+    ref:refParam
   };
   fetch('/api/enroll',{
     method:'POST',

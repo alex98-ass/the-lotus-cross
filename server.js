@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
+const REFLECTIONS = require('./reflections');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -72,7 +73,40 @@ async function initDb() {
       sort_order INTEGER DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT now()
     );
+    CREATE TABLE IF NOT EXISTS reflections (
+      id SERIAL PRIMARY KEY,
+      day_index INTEGER UNIQUE NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      practice TEXT,
+      source TEXT
+    );
+    CREATE TABLE IF NOT EXISTS circles (
+      id SERIAL PRIMARY KEY,
+      steward_id INTEGER NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      city TEXT,
+      country TEXT,
+      model TEXT DEFAULT 'licensed_circle',
+      remit_pct INTEGER DEFAULT 25,
+      status TEXT DEFAULT 'active',
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+    CREATE TABLE IF NOT EXISTS circle_reports (
+      id SERIAL PRIMARY KEY,
+      circle_id INTEGER NOT NULL,
+      period TEXT NOT NULL,
+      gross_pence INTEGER NOT NULL DEFAULT 0,
+      remit_pence INTEGER NOT NULL DEFAULT 0,
+      note TEXT,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE (circle_id, period)
+    );
   `);
+  // Migration: single-level referral (who brought this member)
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by INTEGER");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code TEXT");
+  await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS users_referral_code_idx ON users(referral_code) WHERE referral_code IS NOT NULL");
   // Migration: add channel column to messages (for topic channels)
   await pool.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS channel TEXT DEFAULT 'general'");
   // Seed default admin if none exists
@@ -103,6 +137,35 @@ async function initDb() {
     }
     console.log('  Default tasks seeded.');
   }
+  // Seed daily reflections (30, rotating by calendar day)
+  const rc = await pool.query("SELECT COUNT(*)::int AS c FROM reflections");
+  if (rc.rows[0].c === 0) {
+    for (let i = 0; i < REFLECTIONS.length; i++) {
+      const r = REFLECTIONS[i];
+      await pool.query("INSERT INTO reflections (day_index, title, body, practice, source) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (day_index) DO NOTHING",
+        [i, r.title, r.body, r.practice, r.source]);
+    }
+    console.log('  Daily reflections seeded (' + REFLECTIONS.length + ').');
+  }
+}
+
+// Deterministic "today" helpers — no cron needed, works even on a sleeping free tier
+function todayKey() { return new Date().toISOString().slice(0, 10); }
+function dayOfYear() {
+  const d = new Date();
+  const start = Date.UTC(d.getUTCFullYear(), 0, 0);
+  return Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - start) / 86400000);
+}
+async function reflectionForToday() {
+  const total = (await pool.query("SELECT COUNT(*)::int AS c FROM reflections")).rows[0].c;
+  if (!total) return null;
+  const idx = dayOfYear() % total;
+  const r = (await pool.query("SELECT * FROM reflections WHERE day_index=$1", [idx])).rows[0];
+  return r || null;
+}
+function makeReferralCode(name) {
+  const base = (name || 'friend').toLowerCase().replace(/[^a-z]/g, '').slice(0, 8) || 'friend';
+  return base + '-' + crypto.randomBytes(3).toString('hex');
 }
 
 // ===== EMAIL =====
@@ -191,9 +254,11 @@ const RANKS = [
   { id: 1, name: 'Initiate', icon: '🌿', xpNeeded: 30 },
   { id: 2, name: 'Disciple', icon: '🔥', xpNeeded: 90 },
   { id: 3, name: 'Elder', icon: '⭐', xpNeeded: 200 },
-  { id: 4, name: 'Guide', icon: '✦', xpNeeded: 500 }
+  { id: 4, name: 'Guide', icon: '✦', xpNeeded: 500 },
+  { id: 5, name: 'Steward', icon: '🪷', xpNeeded: 1200 }
 ];
 function calcRank(tasks) {
+  if (tasks >= 1200) return 5;
   if (tasks >= 200) return 4;
   if (tasks >= 90) return 3;
   if (tasks >= 30) return 2;
@@ -206,13 +271,20 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.post('/api/enroll', async (req, res) => {
   try {
-    const { name, email, country, age, tradition, message } = req.body;
+    const { name, email, country, age, tradition, message, ref } = req.body;
     if (!name || !email) return res.status(400).json({ error: 'Name and email required' });
-    const existing = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
+    const existing = await pool.query("SELECT * FROM users WHERE email=$1", [String(email).toLowerCase().trim()]);
     if (existing.rows.length > 0) return res.status(409).json({ error: 'An account with this email already exists' });
+    // Single-level referral: who invited this person (informational, no payout attached)
+    let referrerId = null;
+    if (ref) {
+      const r = await pool.query("SELECT id FROM users WHERE referral_code=$1 AND status='approved'", [String(ref).trim()]);
+      referrerId = r.rows.length ? r.rows[0].id : null;
+    }
+    const code = makeReferralCode(name);
     const info = await pool.query(
-      "INSERT INTO users (name, email, country, age, tradition, message, role, status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",
-      [name, email, country || '', age || null, tradition || '', message || '', 'member', 'pending']);
+      "INSERT INTO users (name, email, country, age, tradition, message, role, status, referred_by, referral_code) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id",
+      [name, email, country || '', age || null, tradition || '', message || '', 'member', 'pending', referrerId, code]);
     const userId = info.rows[0].id;
     const admins = await pool.query("SELECT email FROM users WHERE role='admin'");
     admins.rows.forEach(a => {
@@ -258,11 +330,95 @@ app.get('/api/member/dashboard', requireAuth, async (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   const done = await pool.query("SELECT task_id FROM tasks_done WHERE user_id=$1 AND date=$2", [u.id, today]);
   const tasks = (await pool.query("SELECT id, title, description, category, xp FROM tasks WHERE active=true ORDER BY sort_order, id")).rows;
+  const reflection = await reflectionForToday();
+  const circle = (await pool.query("SELECT * FROM circles WHERE steward_id=$1", [u.id])).rows[0] || null;
+  const brought = (await pool.query(
+    "SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status='approved')::int AS approved FROM users WHERE referred_by=$1", [u.id])).rows[0];
   res.json({
     user: { id: u.id, name: u.name, email: u.email, country: u.country, age: u.age, tradition: u.tradition,
-      rank: u.rank, xp: u.xp, tasks_completed: u.tasks_completed, streak: u.streak, enrolled_at: u.enrolled_at },
-    ranks: RANKS, tasks: tasks, doneToday: done.rows.map(r => r.task_id), today
+      rank: u.rank, xp: u.xp, tasks_completed: u.tasks_completed, streak: u.streak, enrolled_at: u.enrolled_at,
+      referral_code: u.referral_code },
+    ranks: RANKS, tasks: tasks, doneToday: done.rows.map(r => r.task_id), today,
+    reflection: reflection, circle: circle, brought: brought
   });
+});
+
+// ===== DAILY REFLECTION =====
+app.get('/api/reflection/today', requireAuth, async (req, res) => {
+  try {
+    const r = await reflectionForToday();
+    res.json({ reflection: r, date: todayKey() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== CIRCLES (rank 5 Stewards) =====
+// A Steward runs a local circle: a real, in-person or online study group that charges
+// for real teaching/service. The circle remits 25% of its gross receipts to The Lotus Cross
+// as a licence fee. It is NOT a franchise sold for income, and members' donations are not
+// redirected — the circle's own receipts are what is declared.
+app.get('/api/member/circle', requireAuth, async (req, res) => {
+  try {
+    const circle = (await pool.query("SELECT * FROM circles WHERE steward_id=$1", [req.user.id])).rows[0] || null;
+    let reports = [];
+    if (circle) {
+      reports = (await pool.query("SELECT * FROM circle_reports WHERE circle_id=$1 ORDER BY period DESC LIMIT 12", [circle.id])).rows;
+    }
+    res.json({ circle: circle, reports: reports, eligible: (req.user.rank || 0) >= 5 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/member/circle', requireAuth, async (req, res) => {
+  try {
+    if ((req.user.rank || 0) < 5) return res.status(403).json({ error: 'Only Stewards (rank 5) may open a circle' });
+    const { name, city, country } = req.body;
+    if (!name) return res.status(400).json({ error: 'Circle name required' });
+    const exists = (await pool.query("SELECT id FROM circles WHERE steward_id=$1", [req.user.id])).rows[0];
+    if (exists) return res.status(409).json({ error: 'You already steward a circle' });
+    const c = (await pool.query(
+      "INSERT INTO circles (steward_id, name, city, country, remit_pct) VALUES ($1,$2,$3,$4,25) RETURNING *",
+      [req.user.id, name, city || '', country || req.user.country || ''])).rows[0];
+    sendEmail(req.user.email, 'Your circle is open',
+      `<h2>🪷 ${name}</h2><p>Your circle is now registered under The Lotus Cross. You keep 75% of what the circle receives for its teaching and service; 25% is remitted to the mother community each month.</p><p>Declare your monthly receipts honestly in the portal. Nothing else is asked of you.</p>`);
+    res.json({ ok: true, circle: c });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/member/circle/report', requireAuth, async (req, res) => {
+  try {
+    const circle = (await pool.query("SELECT * FROM circles WHERE steward_id=$1", [req.user.id])).rows[0];
+    if (!circle) return res.status(404).json({ error: 'No circle found' });
+    const period = String(req.body.period || '').trim(); // e.g. 2026-10
+    const gross = Math.round(Number(req.body.gross || 0) * 100);
+    if (!/^\d{4}-\d{2}$/.test(period)) return res.status(400).json({ error: 'Period must be YYYY-MM' });
+    if (!isFinite(gross) || gross < 0) return res.status(400).json({ error: 'Invalid amount' });
+    const remit = Math.round(gross * (circle.remit_pct / 100));
+    await pool.query(
+      `INSERT INTO circle_reports (circle_id, period, gross_pence, remit_pence, note)
+       VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT (circle_id, period) DO UPDATE SET gross_pence=$3, remit_pence=$4, note=$5`,
+      [circle.id, period, gross, remit, String(req.body.note || '').slice(0, 500)]);
+    res.json({ ok: true, gross: gross / 100, remit: remit / 100, keep: (gross - remit) / 100 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/member/referrals', requireAuth, async (req, res) => {
+  try {
+    const people = (await pool.query(
+      "SELECT id, name, country, rank, status, enrolled_at FROM users WHERE referred_by=$1 ORDER BY enrolled_at DESC", [req.user.id])).rows;
+    const me = (await pool.query("SELECT referral_code FROM users WHERE id=$1", [req.user.id])).rows[0];
+    res.json({ people: people, count: people.length, approved: people.filter(p => p.status === 'approved').length,
+      referral_code: me ? me.referral_code : null });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/admin/circles', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const circles = (await pool.query(
+      `SELECT c.*, u.name AS steward_name, u.email AS steward_email,
+              COALESCE((SELECT SUM(remit_pence) FROM circle_reports r WHERE r.circle_id=c.id),0)::int AS total_remit
+       FROM circles c JOIN users u ON u.id=c.steward_id ORDER BY c.created_at DESC`)).rows;
+    res.json({ circles: circles });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/member/task', requireAuth, async (req, res) => {
@@ -372,10 +528,10 @@ app.post('/api/admin/set-rank', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { userId, rank } = req.body;
     const r = parseInt(rank, 10);
-    if (isNaN(r) || r < 0 || r > 4) return res.status(400).json({ error: 'Invalid rank (0-4)' });
+    if (isNaN(r) || r < 0 || r > 5) return res.status(400).json({ error: 'Invalid rank (0-5)' });
     const user = (await pool.query("SELECT * FROM users WHERE id=$1", [userId])).rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
-    const thresholds = [0, 7, 30, 90, 200];
+    const thresholds = [0, 7, 30, 90, 200, 1200];
     await pool.query("UPDATE users SET rank=$1, tasks_completed=$2 WHERE id=$3", [r, thresholds[r], user.id]);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
