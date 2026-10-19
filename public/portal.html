@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Lotus Cross — Portal</title>
+<title>The Lotus Cross — Member Portal</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -69,10 +69,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);line-h
 .dash-greet{font-family:'Cormorant Garamond',serif;font-size:2.6rem;font-weight:500;margin-bottom:.3rem}
 .dash-greet em{color:var(--gold-deep);font-style:italic}
 .dash-sub{color:var(--muted);margin-bottom:2.2rem}
-.quote-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:2rem 2.2rem;box-shadow:var(--shadow);margin-bottom:2rem;position:relative}
+.quote-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:2rem 2.2rem;box-shadow:var(--shadow);margin-bottom:1.4rem;position:relative}
 .quote-card .q-label{font-size:.72rem;text-transform:uppercase;letter-spacing:2px;color:var(--gold-deep);margin-bottom:.8rem}
 .quote-card blockquote{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.35rem;line-height:1.6;color:var(--ink)}
 .quote-card cite{display:block;margin-top:.8rem;font-size:.85rem;color:var(--muted);font-style:normal}
+.quote-card.unified{background:linear-gradient(135deg,#fffdf7,var(--card));border-color:var(--gold-light)}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.2rem}
 .stat-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1.6rem;box-shadow:var(--shadow);text-align:center}
 .stat-card .stat-ico{font-size:1.8rem;margin-bottom:.5rem}
@@ -122,9 +123,30 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);line-h
 .comm-input button:hover{background:var(--gold-deep)}
 .comm-empty{color:var(--muted);text-align:center;padding:2rem;font-style:italic;font-family:'Cormorant Garamond',serif}
 
+/* ===== ARCHIVES ===== */
+.arch-head{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:500;margin-bottom:.3rem}
+.arch-sub{color:var(--muted);margin-bottom:2rem}
+.arch-locked{position:relative;border-radius:18px;overflow:hidden;padding:4rem 2.5rem;text-align:center;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow)}
+.arch-locked .blur-bg{position:absolute;inset:0;background:linear-gradient(135deg,#f3e7c4,#e9d9a8);filter:blur(14px);opacity:.5;pointer-events:none}
+.arch-locked .lock-inner{position:relative;z-index:2;max-width:520px;margin:0 auto}
+.arch-locked .lock-ico{font-size:2.6rem;margin-bottom:1rem}
+.arch-locked h3{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:600;color:var(--gold-deep);margin-bottom:.8rem}
+.arch-locked p{color:var(--ink);font-size:1rem;margin-bottom:1.8rem}
+.arch-open{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.4rem}
+.essay-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:2rem;box-shadow:var(--shadow)}
+.essay-card .essay-ico{font-size:2rem;margin-bottom:1rem}
+.essay-card h3{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:600;margin-bottom:.5rem}
+.essay-card p{color:var(--muted);font-size:.92rem}
+
 /* ===== SUPPORT ===== */
 .support-head{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:500;margin-bottom:.3rem}
 .support-sub{color:var(--muted);margin-bottom:2.2rem;max-width:520px}
+.manifest{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:2rem 2.2rem;box-shadow:var(--shadow);margin-bottom:2.2rem}
+.manifest h3{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:600;color:var(--gold-deep);margin-bottom:.8rem}
+.manifest p{color:var(--muted);font-size:.95rem;margin-bottom:1rem}
+.manifest ol{margin:0 0 1rem 1.3rem;color:var(--ink);font-size:.95rem}
+.manifest ol li{padding:.3rem 0}
+.manifest .manifest-close{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.1rem;color:var(--gold-deep);margin:0}
 .pricing{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.4rem;align-items:stretch}
 .price-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:2.2rem 2rem;box-shadow:var(--shadow);display:flex;flex-direction:column;transition:all .3s;position:relative}
 .price-card:hover{transform:translateY(-4px);box-shadow:0 18px 50px rgba(60,45,10,.10)}
@@ -160,123 +182,146 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);line-h
 </head>
 <body>
 
-<!-- ===== LOGIN SCREEN (vizibil doar cand nu esti logat) ===== -->
+<!-- ===== LOGIN SCREEN (only visible when not signed in) ===== -->
 <div id="loginScreen">
   <div class="login-card">
     <div class="login-logo">The <em>Lotus</em> Cross</div>
-    <div class="login-sub">Intră în comunitate</div>
+    <div class="login-sub">Enter the community</div>
     <div id="loginMsg" class="msg"></div>
     <form id="loginForm" onsubmit="return doLogin(event)">
-      <div class="field"><label for="email">Email</label><input type="email" id="email" required placeholder="tu@email.com"></div>
-      <div class="field"><label for="password">Parolă</label><input type="password" id="password" required placeholder="Parola ta"></div>
+      <div class="field"><label for="email">Email</label><input type="email" id="email" required placeholder="you@email.com"></div>
+      <div class="field"><label for="password">Password</label><input type="password" id="password" required placeholder="Your password"></div>
       <button type="submit" class="btn">Sign In</button>
     </form>
-    <button class="btn btn-ghost" onclick="showSetPassword()">Prima dată? Setează-ți parola</button>
-    <a href="index.html" class="back-link">← Înapoi la site</a>
+    <button class="btn btn-ghost" onclick="showSetPassword()">First time? Set your password</button>
+    <a href="index.html" class="back-link">← Back to site</a>
   </div>
 </div>
 
-<!-- ===== PORTAL (ascuns pana la login) ===== -->
+<!-- ===== PORTAL (hidden until signed in) ===== -->
 <div id="portalScreen">
   <div class="app">
     <aside class="sidebar">
       <div class="brand">The <em>Lotus</em> Cross</div>
       <button class="side-btn active" data-tab="dashboard"><span class="ico">🏛️</span><span class="txt">Dashboard</span></button>
-      <button class="side-btn" data-tab="tasks"><span class="ico">🧘</span><span class="txt">Sarcini zilnice</span></button>
-      <button class="side-btn" data-tab="community"><span class="ico">💬</span><span class="txt">Comunitate</span></button>
-      <button class="side-btn" data-tab="support"><span class="ico">💎</span><span class="txt">Susține-ne</span></button>
+      <button class="side-btn" data-tab="tasks"><span class="ico">🧘</span><span class="txt">Daily Tasks</span></button>
+      <button class="side-btn" data-tab="community"><span class="ico">💬</span><span class="txt">Community</span></button>
+      <button class="side-btn" data-tab="archive"><span class="ico">📖</span><span class="txt">Lotus Archives</span></button>
+      <button class="side-btn" data-tab="support"><span class="ico">💎</span><span class="txt">Support Us</span></button>
       <div class="spacer"></div>
-      <button class="logout" onclick="logout()"><span class="ico">⎋</span><span class="txt">Deconectare</span></button>
+      <button class="logout" onclick="logout()"><span class="ico">⎋</span><span class="txt">Sign Out</span></button>
     </aside>
 
     <main class="main">
       <!-- DASHBOARD -->
       <section id="view-dashboard" class="view active">
-        <div class="dash-greet">Pace, <em id="dashName">călătorule</em>.</div>
-        <p class="dash-sub">Continuă-ți drumul. Fiecare pas contează.</p>
+        <div class="dash-greet">Peace, <em id="dashName">traveller</em>.</div>
+        <p class="dash-sub">Continue your journey. Every step matters.</p>
         <div class="quote-card">
-          <div class="q-label">Citatul zilei</div>
+          <div class="q-label">Quote of the Day</div>
           <blockquote id="dashQuote">…</blockquote>
           <cite id="dashQuoteSrc"></cite>
         </div>
-        <div class="stats-grid">
-          <div class="stat-card"><div class="stat-ico" id="dashRankIco">🌱</div><div class="stat-val" id="dashRank">Seeker</div><div class="stat-lbl">Rank actual</div></div>
-          <div class="stat-card"><div class="stat-ico">⚡</div><div class="stat-val" id="dashXp">0</div><div class="stat-lbl">XP</div></div>
-          <div class="stat-card"><div class="stat-ico">🔥</div><div class="stat-val" id="dashStreak">0</div><div class="stat-lbl">Streak (zile)</div></div>
+        <div class="quote-card unified">
+          <div class="q-label">The Wisdom of the Three Paths</div>
+          <blockquote>True religion is a heart full of compassion. Seek peace within and offer love outward.</blockquote>
+          <cite>— The Wisdom of the Three Paths</cite>
         </div>
-        <div class="cta-row"><a href="#" class="cta-btn" onclick="switchTab('tasks');return false">Începe sarcinile de astăzi →</a></div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-ico" id="dashRankIco">🌱</div><div class="stat-val" id="dashRank">Seeker</div><div class="stat-lbl">Current Rank</div></div>
+          <div class="stat-card"><div class="stat-ico">⚡</div><div class="stat-val" id="dashXp">0</div><div class="stat-lbl">XP</div></div>
+          <div class="stat-card"><div class="stat-ico">🔥</div><div class="stat-val" id="dashStreak">0</div><div class="stat-lbl">Day Streak</div></div>
+        </div>
+        <div class="cta-row"><a href="#" class="cta-btn" onclick="switchTab('tasks');return false">Start today's tasks →</a></div>
       </section>
 
       <!-- DAILY TASKS -->
       <section id="view-tasks" class="view">
-        <div class="tasks-head">Sarcinile zilnice</div>
-        <p class="tasks-sub">Bifează fiecare sarcină pe măsură ce o îndeplinești. Fiecare aduce XP și te apropie de următorul rank.</p>
+        <div class="tasks-head">Daily Tasks</div>
+        <p class="tasks-sub">Check off each task as you complete it. Each one earns XP and brings you closer to the next rank.</p>
         <div id="taskList"></div>
-        <div class="all-done" id="allTasksDone">✦ Ai completat toate sarcinile de azi. Revino mâine.<br><span style="font-size:.9rem;color:var(--muted);font-style:normal">Drumul se parcurge o zi la un pas.</span></div>
+        <div class="all-done" id="allTasksDone">✦ You've completed all of today's tasks. Return tomorrow.<br><span style="font-size:.9rem;color:var(--muted);font-style:normal">The path is walked one day at a time.</span></div>
       </section>
 
       <!-- COMMUNITY -->
       <section id="view-community" class="view">
         <div class="comm-layout">
           <div class="comm-side">
-            <div class="comm-label">Canale</div>
+            <div class="comm-label">Channels</div>
             <button class="channel-btn active" data-channel="general" onclick="openChannel('general')"># general</button>
-            <button class="channel-btn" data-channel="meditatie" onclick="openChannel('meditatie')"># meditatie</button>
-            <button class="channel-btn" data-channel="studiu" onclick="openChannel('studiu')"># studiu</button>
+            <button class="channel-btn" data-channel="meditation" onclick="openChannel('meditation')"># meditation</button>
+            <button class="channel-btn" data-channel="study" onclick="openChannel('study')"># study</button>
           </div>
           <div class="comm-main">
             <div class="comm-header" id="commHeader"># general</div>
             <div class="comm-msgs" id="commMsgs"></div>
             <div class="comm-input">
-              <input id="commInput" placeholder="Scrie un mesaj…" onkeydown="if(event.key==='Enter')sendMsg()">
-              <button onclick="sendMsg()">Trimite</button>
+              <input id="commInput" placeholder="Write a message…" onkeydown="if(event.key==='Enter')sendMsg()">
+              <button onclick="sendMsg()">Send</button>
             </div>
           </div>
         </div>
       </section>
 
+      <!-- LOTUS ARCHIVES -->
+      <section id="view-archive" class="view">
+        <div class="arch-head">Lotus Archives</div>
+        <p class="arch-sub">A space for deep study — where the three traditions meet.</p>
+        <div id="archiveContent"></div>
+      </section>
+
       <!-- SUPPORT -->
       <section id="view-support" class="view">
-        <div class="support-head">Susține-ne</div>
-        <p class="support-sub">The Lotus Cross este susținut integral de membrii săi. Toate sumele sunt voluntare — nu există nicio obligație.</p>
+        <div class="support-head">Support Us</div>
+        <div class="manifest">
+          <h3>Why do we need your support?</h3>
+          <p>The Lotus Cross is a sacred space, completely free of ads and algorithms. Your donation funds:</p>
+          <ol>
+            <li>Digitising and translating the sacred texts of the three traditions</li>
+            <li>Organising free meditations and community events</li>
+            <li>The Karma Fund: 20% of every donation goes directly to humanitarian causes and helping those in need</li>
+          </ol>
+          <p class="manifest-close">Help create a refuge of peace in a chaotic world.</p>
+        </div>
         <div class="pricing">
           <div class="price-card">
             <div class="price-name">Supporter</div>
-            <div class="price-amount">£5<span> / lună</span></div>
-            <p class="price-desc">Pentru cei care vor să contribuie la comunitate.</p>
+            <div class="price-amount">£5<span> / month</span></div>
+            <p class="price-desc">For those who want to give back to the community.</p>
             <ul class="price-feats">
-              <li>Insignă de Supporter</li>
-              <li>Acces la toate canalele</li>
-              <li>Mulțumirea noastră sinceră</li>
+              <li>Supporter badge</li>
+              <li>Access to all channels</li>
+              <li>Our sincere gratitude</li>
             </ul>
-            <a class="price-btn" href="https://ko-fi.com/lotus77096" target="_blank" rel="noopener">Alege £5</a>
+            <a class="price-btn" href="https://ko-fi.com/lotus77096" target="_blank" rel="noopener">Choose £5</a>
           </div>
           <div class="price-card featured">
-            <div class="badge">Cel mai popular</div>
+            <div class="badge">Most popular</div>
             <div class="price-name">Patron</div>
-            <div class="price-amount">£15<span> / lună</span></div>
-            <p class="price-desc">Pentru cei care vor să meargă mai adânc.</p>
+            <div class="price-amount">£15<span> / month</span></div>
+            <p class="price-desc">For those who want to go deeper.</p>
             <ul class="price-feats">
-              <li>Primești materiale de studiu exclusive în fiecare lună</li>
-              <li>Insignă de Patron</li>
-              <li>Acces anticipat la meditații ghidate</li>
-              <li>Toate beneficiile de Supporter</li>
+              <li>You receive exclusive study materials every month</li>
+              <li>Access to the Lotus Archives: unique monthly guides that blend practices (e.g., the connection between Hesychast Prayer and Buddhist meditation)</li>
+              <li>Patron badge</li>
+              <li>Early access to guided meditations</li>
+              <li>All Supporter benefits</li>
             </ul>
-            <a class="price-btn" href="https://ko-fi.com/lotus77096" target="_blank" rel="noopener">Alege £15</a>
+            <a class="price-btn" href="https://ko-fi.com/lotus77096" target="_blank" rel="noopener">Choose £15</a>
           </div>
           <div class="price-card">
             <div class="price-name">Guide</div>
-            <div class="price-amount">£50<span> / lună</span></div>
-            <p class="price-desc">Pentru cei care susțin profund misiunea.</p>
+            <div class="price-amount">£50<span> / month</span></div>
+            <p class="price-desc">For those who deeply support the mission.</p>
             <ul class="price-feats">
-              <li>O sesiune de îndrumare personală pe lună</li>
-              <li>Insignă de Guide</li>
-              <li>Toate beneficiile de Patron</li>
+              <li>One personal guidance session per month</li>
+              <li>Guide badge</li>
+              <li>All Patron benefits</li>
             </ul>
-            <a class="price-btn" href="https://ko-fi.com/lotus77096" target="_blank" rel="noopener">Alege £50</a>
+            <a class="price-btn" href="https://ko-fi.com/lotus77096" target="_blank" rel="noopener">Choose £50</a>
           </div>
         </div>
-        <p class="support-note">The Lotus Cross este o comunitate spirituală, nu o organizație caritabilă înregistrată. Donațiile nu sunt deductibile fiscal.</p>
+        <p class="support-note">The Lotus Cross is a spiritual community, not a registered charity. Donations are not tax-deductible.</p>
       </section>
     </main>
   </div>
@@ -289,6 +334,7 @@ var currentTab='dashboard';
 var currentChannel='general';
 var currentTasks=[];
 var doneToday=[];
+var userRank=0;
 var chatPollTimer=null;
 
 // ===== API =====
@@ -306,26 +352,26 @@ function doLogin(e){
   fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:password})})
     .then(function(r){return r.json().then(function(d){return{ok:r.ok,d:d};});})
     .then(function(res){
-      if(!res.ok){showMsg(res.d.error||'Login eșuat','error');return;}
+      if(!res.ok){showMsg(res.d.error||'Login failed','error');return;}
       token=res.d.token;
       localStorage.setItem('lotus_token',token);
       enterPortal();
     })
-    .catch(function(){showMsg('Eroare de rețea. Serverul rulează?','error');});
+    .catch(function(){showMsg('Network error. Is the server running?','error');});
   return false;
 }
 function showSetPassword(){
-  var email=prompt('Email-ul tău:');
+  var email=prompt('Your email:');
   if(!email)return;
-  var password=prompt('Alege o parolă (min 6 caractere):');
+  var password=prompt('Choose a password (min 6 characters):');
   if(!password)return;
   fetch('/api/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:password})})
     .then(function(r){return r.json().then(function(d){return{ok:r.ok,d:d};});})
     .then(function(res){
-      if(res.ok){showMsg('Parolă setată! Te poți autentifica.','success');}
-      else{showMsg(res.d.error||'Eroare','error');}
+      if(res.ok){showMsg('Password set! You can now sign in.','success');}
+      else{showMsg(res.d.error||'Error','error');}
     })
-    .catch(function(){showMsg('Eroare de rețea','error');});
+    .catch(function(){showMsg('Network error','error');});
 }
 function logout(){
   api('/api/logout',{method:'POST'}).finally(function(){
@@ -343,6 +389,7 @@ function switchTab(tab){
   document.getElementById('view-'+tab).classList.add('active');
   if(tab==='dashboard')loadDashboard();
   if(tab==='tasks')loadTasks();
+  if(tab==='archive')loadArchive();
   if(tab==='community'){loadChannel();startChatPolling();}
   else stopChatPolling();
 }
@@ -350,15 +397,16 @@ document.querySelectorAll('.side-btn').forEach(function(b){b.addEventListener('c
 
 // ===== DASHBOARD =====
 var QUOTES=[
-  {text:'„Iubește-ți aproapele ca pe tine însuți.”',src:'— Tradiția creștină'},
-  {text:'„Mintea este totul. Ceea ce gândești, devii.”',src:'— Tradiția budistă'},
-  {text:'„Fă-ți datoria fără a te atașa de roade.”',src:'— Tradiția hindusă'}
+  {text:'"Love your neighbour as yourself."',src:'— The Christian tradition'},
+  {text:'"The mind is everything. What you think, you become."',src:'— The Buddhist tradition'},
+  {text:'"Do your duty without attachment to the results."',src:'— The Hindu tradition'}
 ];
 function loadDashboard(){
   api('/api/member/dashboard').then(function(res){
     if(!res.ok){if(res.d.error==='Not authenticated'){logout();}return;}
     var u=res.d.user;
-    document.getElementById('dashName').textContent=u.name||'călătorule';
+    userRank=u.rank||0;
+    document.getElementById('dashName').textContent=u.name||'traveller';
     var rank=res.d.ranks[u.rank]||res.d.ranks[0];
     document.getElementById('dashRankIco').textContent=rank.icon;
     document.getElementById('dashRank').textContent=rank.name;
@@ -376,6 +424,7 @@ function loadTasks(){
     if(!res.ok){if(res.d.error==='Not authenticated'){logout();}return;}
     currentTasks=res.d.tasks||[];
     doneToday=res.d.doneToday||[];
+    userRank=res.d.user.rank||0;
     renderTasks();
   });
 }
@@ -398,6 +447,28 @@ function toggleTask(id){
   });
 }
 
+// ===== ARCHIVES =====
+function loadArchive(){
+  var el=document.getElementById('archiveContent');
+  if(userRank>0){
+    el.innerHTML='<div class="arch-open">'+
+      '<div class="essay-card"><div class="essay-ico">📜</div><h3>Dharma and the Will of God</h3><p>How the Hindu idea of dharma and the Christian idea of divine will point to the same truth: living in harmony with a higher order.</p></div>'+
+      '<div class="essay-card"><div class="essay-ico">🌬️</div><h3>The Guide to Conscious Breathing</h3><p>A practical guide uniting pranayama and contemplative breath — a single practice for calming the mind and opening the heart.</p></div>'+
+      '<div class="essay-card"><div class="essay-ico">🕊️</div><h3>Hesychast Prayer &amp; Buddhist Meditation</h3><p>Two traditions, one inner silence. How the Jesus Prayer and mindfulness meet in the still point of the heart.</p></div>'+
+    '</div>';
+  } else {
+    el.innerHTML='<div class="arch-locked">'+
+      '<div class="blur-bg"></div>'+
+      '<div class="lock-inner">'+
+        '<div class="lock-ico">🔒</div>'+
+        '<h3>This is a space for deep study</h3>'+
+        '<p>Unlock the Archives by becoming a Patron (£15/month) and get access to the first essays: "Dharma and the Will of God" and "The Guide to Conscious Breathing".</p>'+
+        '<a class="cta-btn" href="https://ko-fi.com/lotus77096" target="_blank" rel="noopener">Become a Patron</a>'+
+      '</div>'+
+    '</div>';
+  }
+}
+
 // ===== COMMUNITY =====
 function openChannel(ch){
   currentChannel=ch;
@@ -413,14 +484,14 @@ function loadChannel(){
 }
 function renderMsgs(messages,me){
   var box=document.getElementById('commMsgs');
-  if(!messages.length){box.innerHTML='<div class="comm-empty">Niciun mesaj încă. Începe conversația.</div>';return;}
+  if(!messages.length){box.innerHTML='<div class="comm-empty">No messages yet. Start the conversation.</div>';return;}
   box.innerHTML='';
   messages.forEach(function(m){
     var row=document.createElement('div');
     row.className='msg-row'+(m.sender_id===me?' mine':'');
     var b=document.createElement('div');b.className='msg-bubble';
     var meta=document.createElement('div');meta.className='msg-meta';
-    meta.textContent=m.sender_name+' · '+new Date(m.created_at).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+    meta.textContent=m.sender_name+' · '+new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     var body=document.createElement('div');body.className='msg-body';body.textContent=m.body;
     b.appendChild(meta);b.appendChild(body);row.appendChild(b);box.appendChild(row);
   });
