@@ -72,8 +72,12 @@ async function initDb() {
 }
 
 // ===== EMAIL =====
+// Primary: Resend HTTP API (set RESEND_API_KEY). Fallback: SMTP (SMTP_*). Otherwise: log only.
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const EMAIL_FROM = process.env.EMAIL_FROM || 'The Lotus Cross <onboarding@resend.dev>';
+
 let transporter = null;
-if (process.env.SMTP_HOST) {
+if (!RESEND_API_KEY && process.env.SMTP_HOST) {
   transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT || '587'),
@@ -81,19 +85,36 @@ if (process.env.SMTP_HOST) {
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
   });
   console.log('SMTP email configured.');
-} else {
-  console.log('No SMTP configured — emails logged to data/emails.log');
 }
 
 function sendEmail(to, subject, html) {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   const logLine = `\n[${new Date().toISOString()}] TO: ${to}\nSUBJECT: ${subject}\n${html.replace(/<[^>]+>/g, ' ')}\n${'='.repeat(60)}`;
   fs.appendFileSync(path.join(DATA_DIR, 'emails.log'), logLine);
+
+  if (RESEND_API_KEY) {
+    return fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + RESEND_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, html })
+    })
+      .then(async (r) => {
+        if (r.ok) { console.log('Email sent via Resend to', to); }
+        else { const t = await r.text(); console.log('Resend failed:', r.status, t.slice(0, 200)); }
+      })
+      .catch(e => console.log('Resend error:', e.message));
+  }
+
   if (transporter) {
-    return transporter.sendMail({ from: process.env.SMTP_FROM || 'The Lotus Cross <no-reply@thelotuscross.org>', to, subject, html })
+    return transporter.sendMail({ from: EMAIL_FROM, to, subject, html })
       .then(() => console.log('Email sent to', to))
       .catch(e => console.log('Email send failed:', e.message));
   }
+
+  console.log('Email logged only (no transport configured) to', to);
   return Promise.resolve();
 }
 
