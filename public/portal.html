@@ -92,6 +92,14 @@ footer{background:var(--bg2);padding:2rem;text-align:center;border-top:1px solid
 footer p{font-size:.8rem;color:var(--muted)}
 footer a{color:var(--gold);text-decoration:none}
 @media(max-width:768px){nav ul{display:none}.welcome h1{font-size:1.8rem}.stats-grid{grid-template-columns:repeat(2,1fr)}.tab-btn{padding:.8rem .8rem;font-size:.75rem}}
+/* ===== Rank animation ===== */
+@keyframes rankGlow{0%,100%{filter:drop-shadow(0 0 2px rgba(201,162,39,.25))}50%{filter:drop-shadow(0 0 14px rgba(201,162,39,.55))}}
+.rank-display .rank-icon{animation:rankGlow 3s ease-in-out infinite}
+.stat-value{transition:all .6s ease}
+nav .rank-badge{transition:all .5s ease}
+@keyframes popIn{0%{transform:scale(.7);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+.rank-display .rank-info h3{animation:popIn .5s ease}
+
 /* ===== Community Chat & Messaging ===== */
 .chat-layout{display:flex;gap:1.5rem;align-items:stretch}
 .chat-sidebar{width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:.4rem}
@@ -336,7 +344,11 @@ footer a{color:var(--gold);text-decoration:none}
   <div class="tab-content" id="tab-messages">
     <div class="chat-layout">
       <div class="chat-sidebar">
-        <button class="chat-room-btn active" data-room="general" onclick="openGeneralChat()">💬 Community Chat</button>
+        <div class="chat-sidebar-label">Channels</div>
+        <button class="chat-room-btn active" data-room="general" onclick="openChannel('general','💬 General')">💬 General</button>
+        <button class="chat-room-btn" data-room="meditation" onclick="openChannel('meditation','🧘 Meditation')">🧘 Meditation</button>
+        <button class="chat-room-btn" data-room="study" onclick="openChannel('study','📖 Study')">📖 Study</button>
+        <button class="chat-room-btn" data-room="support" onclick="openChannel('support','🤝 Support')">🤝 Support</button>
         <div class="chat-sidebar-label">Direct Messages</div>
         <div id="dmPartners"></div>
         <button class="chat-find-btn" onclick="showDirectory()">🔍 Find Members</button>
@@ -425,20 +437,22 @@ function loadDashboard(){
       document.getElementById('progressFill').style.width='100%';
       document.getElementById('rankHint').textContent='You have reached the highest rank. The path continues through service.';
     }
+    currentTasks=d.tasks||[];
     renderTasks(d.doneToday);
     renderRanks(u.rank);
   });
 }
 
+var currentTasks=[];
 function renderTasks(doneToday){
   var list=document.getElementById('taskList');
   var html='';var allDone=true;
-  DAILY_TASKS.forEach(function(t){
-    var isDone=doneToday.indexOf(t.id)!==-1;
+  currentTasks.forEach(function(t){
+    var isDone=doneToday.indexOf(String(t.id))!==-1;
     if(!isDone)allDone=false;
     html+='<div class="task-item'+(isDone?' completed':'')+'" onclick="toggleTask(\''+t.id+'\')">'+
       '<div class="task-checkbox'+(isDone?' checked':'')+'"></div>'+
-      '<div class="task-content"><div class="task-title">'+t.title+'</div><div class="task-desc">'+t.desc+'</div><div class="task-xp">+'+t.xp+' XP</div></div></div>';
+      '<div class="task-content"><div class="task-title">'+t.title+'</div><div class="task-desc">'+t.description+'</div><div class="task-xp">+'+t.xp+' XP</div></div></div>';
   });
   list.innerHTML=html;
   document.getElementById('allTasksDone').style.display=allDone?'block':'none';
@@ -461,16 +475,16 @@ function renderRanks(currentRank){
 }
 
 // ===== Community Chat & Messaging =====
-var chatMode='general', chatWithId=null, chatWithName=null, chatPollTimer=null, allMembers=[];
+var chatMode='general', currentChannel='general', chatWithId=null, chatWithName=null, chatPollTimer=null, allMembers=[];
 function escapeHtml(s){if(s==null)return '';return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function rankName(r){return RANKS[r]?RANKS[r].name:'Seeker';}
 function formatTime(iso){var d=new Date(iso);return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
 
-function openGeneralChat(){chatMode='general';chatWithId=null;chatWithName=null;document.querySelectorAll('.chat-room-btn').forEach(function(b){b.classList.toggle('active',b.dataset.room==='general');});loadPartners();loadGeneralChat();}
-function loadGeneralChat(){api('/api/messages').then(function(r){if(!r.ok)return;renderChat(r.d.messages,r.d.me,'💬 Community Chat');});}
+function openChannel(channel,name){chatMode='general';currentChannel=channel;chatWithId=null;chatWithName=null;document.querySelectorAll('.chat-room-btn').forEach(function(b){b.classList.toggle('active',b.dataset.room===channel);});loadPartners();loadChannel();}
+function loadChannel(){api('/api/messages?channel='+currentChannel).then(function(r){if(!r.ok)return;var labels={'general':'💬 General','meditation':'🧘 Meditation','study':'📖 Study','support':'🤝 Support'};renderChat(r.d.messages,r.d.me,labels[currentChannel]||('💬 '+currentChannel));});}
 function renderChat(messages,me,header){document.getElementById('chatHeader').textContent=header;var box=document.getElementById('chatMessages');if(!messages.length){box.innerHTML='<div class="chat-empty">No messages yet. Start the conversation.</div>';return;}box.innerHTML='';messages.forEach(function(m){var row=document.createElement('div');row.className='msg-row'+(m.sender_id===me?' mine':'');var b=document.createElement('div');b.className='msg-bubble';var meta=document.createElement('div');meta.className='msg-meta';meta.textContent=m.sender_name+' · '+formatTime(m.created_at);var body=document.createElement('div');body.className='msg-body';body.textContent=m.body;b.appendChild(meta);b.appendChild(body);row.appendChild(b);box.appendChild(row);});box.scrollTop=box.scrollHeight;}
 
-function sendChat(){var input=document.getElementById('chatInput');var body=input.value.trim();if(!body)return;var payload={body:body};if(chatMode==='dm'&&chatWithId)payload.receiverId=chatWithId;api('/api/messages',{method:'POST',body:JSON.stringify(payload)}).then(function(r){if(r.ok){input.value='';if(chatMode==='general')loadGeneralChat();else loadDM();}});}
+function sendChat(){var input=document.getElementById('chatInput');var body=input.value.trim();if(!body)return;var payload={body:body};if(chatMode==='dm'&&chatWithId)payload.receiverId=chatWithId;else payload.channel=currentChannel;api('/api/messages',{method:'POST',body:JSON.stringify(payload)}).then(function(r){if(r.ok){input.value='';if(chatMode==='general')loadChannel();else loadDM();}});}
 
 function loadPartners(){api('/api/messages/partners').then(function(r){if(!r.ok)return;var list=document.getElementById('dmPartners');if(!r.d.partners.length){list.innerHTML='<div style="color:var(--muted);font-size:.8rem;padding:.5rem">No conversations yet</div>';return;}list.innerHTML='';r.d.partners.forEach(function(p){var btn=document.createElement('button');btn.className='chat-partner'+(chatMode==='dm'&&chatWithId===p.id?' active':'');var av=document.createElement('div');av.className='avatar';av.textContent=(p.name||'?').charAt(0).toUpperCase();var info=document.createElement('div');var nm=document.createElement('div');nm.className='p-name';nm.textContent=p.name;var pv=document.createElement('div');pv.className='p-preview';pv.textContent=p.last_msg||'';info.appendChild(nm);info.appendChild(pv);btn.appendChild(av);btn.appendChild(info);btn.onclick=function(){openDM(p.id,p.name);};list.appendChild(btn);});});}
 function openDM(id,name){chatMode='dm';chatWithId=id;chatWithName=name;document.querySelectorAll('.chat-room-btn').forEach(function(b){b.classList.remove('active');});loadPartners();loadDM();}
@@ -481,7 +495,7 @@ function hideDirectory(){document.getElementById('directoryOverlay').style.displ
 function loadDirectory(){api('/api/members').then(function(r){if(!r.ok)return;allMembers=r.d.members;renderDirectory('');});}
 function renderDirectory(q){var list=document.getElementById('directoryList');var ql=(q||'').toLowerCase();var filtered=allMembers.filter(function(m){return !ql||(m.name||'').toLowerCase().indexOf(ql)!==-1||(m.country||'').toLowerCase().indexOf(ql)!==-1||(m.tradition||'').toLowerCase().indexOf(ql)!==-1||rankName(m.rank).toLowerCase().indexOf(ql)!==-1;});if(!filtered.length){list.innerHTML='<div class="chat-empty">No members found</div>';return;}list.innerHTML='';filtered.forEach(function(m){var item=document.createElement('div');item.className='directory-item';var info=document.createElement('div');info.className='dir-info';var nm=document.createElement('div');nm.className='d-name';nm.textContent=m.name;var sub=document.createElement('div');sub.className='d-sub';sub.textContent=rankName(m.rank)+' · '+(m.country||'—')+(m.tradition?' · '+m.tradition:'');info.appendChild(nm);info.appendChild(sub);var btn=document.createElement('button');btn.className='dir-msg-btn';btn.textContent='Message';btn.onclick=function(){hideDirectory();openDM(m.id,m.name);};item.appendChild(info);item.appendChild(btn);list.appendChild(item);});}
 
-function startChatPolling(){stopChatPolling();chatPollTimer=setInterval(function(){if(chatMode==='general')loadGeneralChat();else loadDM();},4000);}
+function startChatPolling(){stopChatPolling();chatPollTimer=setInterval(function(){if(chatMode==='general')loadChannel();else loadDM();},4000);}
 function stopChatPolling(){if(chatPollTimer){clearInterval(chatPollTimer);chatPollTimer=null;}}
 
 function showTab(tabName){
@@ -490,7 +504,7 @@ function showTab(tabName){
   document.getElementById('tab-'+tabName).classList.add('active');
   document.querySelectorAll('.tab-btn').forEach(function(b){if(b.dataset.tab===tabName)b.classList.add('active');});
   document.querySelectorAll('#navTabs a').forEach(function(a){a.classList.remove('active');if(a.dataset.tab===tabName)a.classList.add('active');});
-  if(tabName==='messages'){loadPartners();loadGeneralChat();startChatPolling();}else{stopChatPolling();}
+  if(tabName==='messages'){loadPartners();loadChannel();startChatPolling();}else{stopChatPolling();}
   window.scrollTo(0,0);
 }
 

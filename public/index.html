@@ -87,6 +87,26 @@ nav .btn-nav:hover {
   transform: translateY(-1px);
 }
 
+/* ===== NAV enhancements ===== */
+nav{transition:transform 0.4s ease}
+nav.nav-hidden{transform:translateY(-100%)}
+nav .logo{text-decoration:none;cursor:pointer;transition:color .3s}
+nav .logo:hover{color:var(--gold-light)}
+.nav-right{display:flex;align-items:center;gap:1rem}
+.hamburger{display:flex;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:6px;z-index:101}
+.hamburger span{display:block;width:24px;height:2px;background:var(--gold);transition:all .3s}
+.hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+.mobile-menu{display:none;position:fixed;top:64px;left:0;right:0;background:rgba(10,10,15,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:.5rem 2rem 1rem;flex-direction:column;z-index:99}
+.mobile-menu.open{display:flex}
+.mobile-menu a{color:var(--text-muted);text-decoration:none;padding:1rem 0;font-size:.9rem;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid var(--border);transition:color .3s}
+.mobile-menu a:hover{color:var(--gold)}
+.mobile-menu a:last-child{border-bottom:none}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+@media(max-width:768px){.nav-links{display:none}.nav-right .btn-nav{display:none}}
+
 /* ===== HERO ===== */
 .hero {
   min-height: 100vh;
@@ -535,19 +555,23 @@ footer .social a:hover { color: var(--gold); }
 <body>
 
 <!-- NAV -->
-<nav>
-  <div class="logo">✦ The Lotus Cross</div>
-  <ul>
+<nav id="mainNav">
+  <a href="mission.html" class="logo">✦ The Lotus Cross</a>
+  <ul class="nav-links">
     <li><a href="#about">About</a></li>
     <li><a href="#paths">The Three Paths</a></li>
-    <li><a href="#ranks">Ranks</a></li>
-    <li><a href="#enroll">Enroll</a></li>
     <li><a href="#contact">Contact</a></li>
-    <li><a href="https://ko-fi.com/lotus77096" target="_blank" rel="noopener">Support Us</a></li>
   </ul>
-  <a href="login.html" class="btn-nav" style="margin-right:.5rem">Sign In</a>
+  <div class="nav-right">
     <a href="#enroll" class="btn-nav">Join Us</a>
+    <button class="hamburger" id="hamburger" onclick="toggleMenu()" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
 </nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#ranks">Ranks</a>
+  <a href="https://ko-fi.com/lotus77096" target="_blank" rel="noopener">☕ Support Us</a>
+  <a href="login.html">Sign In</a>
+</div>
 
 <!-- HERO -->
 <div class="hero">
@@ -781,6 +805,36 @@ function submitForm(e) {
   })
   .catch(() => alert('Network error. Is the server running?'));
   return false;
+}
+
+// Hamburger menu
+function toggleMenu(){
+  document.getElementById('hamburger').classList.toggle('open');
+  document.getElementById('mobileMenu').classList.toggle('open');
+}
+document.querySelectorAll('#mobileMenu a').forEach(function(a){
+  a.addEventListener('click',function(){
+    document.getElementById('hamburger').classList.remove('open');
+    document.getElementById('mobileMenu').classList.remove('open');
+  });
+});
+
+// Hide/show nav on scroll (hide scrolling down, show scrolling up)
+var lastScrollY=window.scrollY;
+window.addEventListener('scroll',function(){
+  var y=window.scrollY;
+  var nav=document.getElementById('mainNav');
+  if(y>lastScrollY && y>140){nav.classList.add('nav-hidden');}
+  else{nav.classList.remove('nav-hidden');}
+  lastScrollY=y;
+},{passive:true});
+
+// Reveal-on-scroll animation for sections
+if('IntersectionObserver' in window){
+  var ro=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){if(en.isIntersecting){en.target.classList.add('visible');ro.unobserve(en.target);}});
+  },{threshold:0.12});
+  document.querySelectorAll('section').forEach(function(s){s.classList.add('reveal');ro.observe(s);});
 }
 </script>
 

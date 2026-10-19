@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Our Mission — The Lotus Cross</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap');
+:root{--bg:#0a0a0f;--bg2:#121119;--card:rgba(255,255,255,0.03);--gold:#c9a227;--gold-light:#e8c856;--purple:#7b6ba8;--text:#e8e6e3;--muted:#9b9b9b;--text-muted:#9b9b9b;--border:rgba(201,162,39,0.15);--red:#c94a4a;--green:#4a9d7f}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);line-height:1.8}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;transition:transform .4s ease}
+nav.nav-hidden{transform:translateY(-100%)}
+nav .logo{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:600;color:var(--gold);letter-spacing:1px;text-decoration:none}
+nav .links{display:flex;gap:2rem;align-items:center}
+nav .links a{color:var(--text-muted);text-decoration:none;font-size:.85rem;text-transform:uppercase;letter-spacing:1.5px;transition:color .3s}
+nav .links a:hover{color:var(--gold)}
+nav .btn-nav{background:var(--gold);color:#000;padding:.6rem 1.5rem;border-radius:2px;font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;text-decoration:none;transition:all .3s}
+nav .btn-nav:hover{background:var(--gold-light)}
+.wrap{max-width:900px;margin:0 auto;padding:0 2rem}
+.hero{padding:10rem 2rem 5rem;text-align:center;background:radial-gradient(ellipse at 50% 0%,rgba(123,107,168,.12) 0%,transparent 60%)}
+.hero .kicker{font-size:.8rem;text-transform:uppercase;letter-spacing:3px;color:var(--gold);margin-bottom:1.5rem}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:3.2rem;font-weight:400;line-height:1.2;margin-bottom:1.5rem}
+.hero h1 em{color:var(--gold);font-style:italic}
+.hero p{color:var(--muted);font-size:1.15rem;max-width:650px;margin:0 auto;line-height:1.9}
+.section{padding:4rem 0;border-top:1px solid var(--border)}
+.section h2{font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:500;color:var(--gold);margin-bottom:1.5rem;text-align:center}
+.section .sub{text-align:center;color:var(--muted);font-style:italic;font-family:'Cormorant Garamond',serif;font-size:1.1rem;margin-bottom:3rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.5rem;margin-top:2rem}
+.card{background:var(--card);border:1px solid var(--border);padding:2rem;border-radius:3px}
+.card .icon{font-size:2rem;margin-bottom:1rem;opacity:.85}
+.card h3{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:500;margin-bottom:.8rem;color:var(--text)}
+.card p{color:var(--muted);font-size:.92rem;line-height:1.8}
+.card em{color:var(--gold);font-style:italic}
+.values{list-style:none;margin-top:1.5rem}
+.values li{padding:1.2rem 0;border-bottom:1px solid var(--border);color:var(--muted);display:flex;gap:1rem;align-items:flex-start}
+.values li strong{color:var(--text);min-width:180px;display:inline-block}
+.values li .v{color:var(--gold);font-family:'Cormorant Garamond',serif;font-size:1.3rem;min-width:36px}
+blockquote{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.5rem;color:var(--gold);text-align:center;padding:3rem 2rem;line-height:1.6}
+blockquote cite{display:block;font-size:.9rem;color:var(--muted);font-style:normal;margin-top:1rem;font-family:'Inter',sans-serif}
+.cta{padding:5rem 0;text-align:center}
+.cta h2{font-family:'Cormorant Garamond',serif;font-size:2.5rem;font-weight:400;margin-bottom:1rem}
+.cta p{color:var(--muted);max-width:550px;margin:0 auto 2.5rem}
+.cta .btn{background:var(--gold);color:#000;padding:1rem 2.5rem;border-radius:2px;font-size:.9rem;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;text-decoration:none;display:inline-block;transition:all .3s}
+.cta .btn:hover{background:var(--gold-light);transform:translateY(-2px)}
+footer{background:var(--bg2);padding:2rem;text-align:center;border-top:1px solid var(--border)}
+footer p{font-size:.8rem;color:var(--muted)}
+footer a{color:var(--gold);text-decoration:none}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+@media(max-width:768px){.hero h1{font-size:2.2rem}nav .links{display:none}.values li{flex-direction:column;gap:.3rem}.values li strong{min-width:0}}
+</style>
+</head>
+<body>
+
+<nav id="mainNav">
+  <a href="index.html" class="logo">✦ The Lotus Cross</a>
+  <div class="links">
+    <a href="index.html">Home</a>
+    <a href="index.html#about">About</a>
+    <a href="index.html#contact">Contact</a>
+  </div>
+  <a href="index.html#enroll" class="btn-nav">Join Us</a>
+</nav>
+
+<div class="hero">
+  <div class="kicker">Our Mission</div>
+  <h1>Where the paths <em>converge</em> into one.</h1>
+  <p>The Lotus Cross is a spiritual community that draws wisdom from the great traditions of the world — Taoism, Buddhism, Christianity, and the vision of collective liberation — and unites them into a single, living path of love, awareness, and righteous action.</p>
+</div>
+
+<div class="wrap">
+
+  <div class="section reveal">
+    <h2>What We Believe</h2>
+    <p class="sub">No single tradition holds the whole truth. Each holds a facet of it.</p>
+    <p style="color:var(--muted);text-align:center;max-width:700px;margin:0 auto">
+      We are not here to replace your faith, but to deepen it. We believe the teachings of the Buddha, the wisdom of the Tao, the love of Christ, and the call for justice found in every people's struggle are not in conflict — they are the same river, seen from different banks. The Lotus Cross is the meeting place.
+    </p>
+    <div class="grid">
+      <div class="card"><div class="icon">☯</div><h3>The Way of the Tao</h3><p>From Taoism we take <em>wu wei</em> — effortless action. To flow with the natural order rather than struggle against it. To be still, and in stillness, to act rightly.</p></div>
+      <div class="card"><div class="icon">☸</div><h3>The Mind of the Buddha</h3><p>From Buddhism we take awareness — the practice of observing the mind, dissolving suffering at its root, and walking the Eightfold Path of right understanding and right conduct.</p></div>
+      <div class="card"><div class="icon">✝</div><h3>The Heart of Christ</h3><p>From Christianity we take love — the radical, self-giving love that asks us to love our neighbour as ourselves, to forgive, and to serve the least among us.</p></div>
+      <div class="card"><div class="icon">✊</div><h3>The Cry for Justice</h3><p>From the vision of collective liberation we take the conviction that no one is free while others are oppressed — that spiritual growth is inseparable from justice for all.</p></div>
+    </div>
+  </div>
+
+  <div class="section reveal">
+    <h2>The Three Paths</h2>
+    <p class="sub">One river, three currents. Every member walks all three.</p>
+    <div class="grid">
+      <div class="card"><div class="icon">💛</div><h3>The Way of Love</h3><p>Compassion in action. Kindness to every being. Service to those who suffer. Love is not a feeling but a discipline, practiced daily.</p></div>
+      <div class="card"><div class="icon">🧘</div><h3>The Way of Awareness</h3><p>Meditation, mindfulness, and self-knowledge. To see clearly — our own minds first — so that we may act without illusion.</p></div>
+      <div class="card"><div class="icon">⚖️</div><h3>The Way of Right Action</h3><p>Justice and integrity. To align our lives with what is good, to speak truth, and to build a world where all may flourish.</p></div>
+    </div>
+  </div>
+
+  <div class="section reveal">
+    <h2>Our Values</h2>
+    <p class="sub">The principles that guide our community.</p>
+    <ul class="values">
+      <li><span class="v">✦</span><div><strong>Respect all paths</strong> No tradition is superior. We honour every sincere search for truth.</div></li>
+      <li><span class="v">✦</span><div><strong>No proselytising</strong> We share experience, never impose belief. Faith is offered, never forced.</div></li>
+      <li><span class="v">✦</span><div><strong>Kindness first</strong> Disagreement is inevitable; disrespect is not. We disagree without wounding.</div></li>
+      <li><span class="v">✦</span><div><strong>Service over status</strong> Ranks exist for organisation, not hierarchy. The greatest among us is the one who serves.</div></li>
+      <li><span class="v">✦</span><div><strong>Voluntary always</strong> You may leave at any time. No obligation, no guilt, ever.</div></li>
+      <li><span class="v">✦</span><div><strong>Justice inseparable from spirit</strong> A truly awakened person cannot ignore the suffering of others.</div></li>
+    </ul>
+  </div>
+
+  <div class="section reveal">
+    <h2>Our Vision</h2>
+    <p class="sub">What we are building toward.</p>
+    <p style="color:var(--muted);max-width:700px;margin:0 auto;text-align:center">
+      A world where the mystic and the activist are the same person. Where meditation leads to action and action is rooted in stillness. Where people of every faith — and of no faith — walk together in mutual respect, deepening their own path while honouring the paths of others. We are building a community of practice: daily disciplines, genuine fellowship, and a shared commitment to love, awareness, and justice.
+    </p>
+  </div>
+
+  <blockquote class="reveal">
+    "The lotus grows in mud, yet rises unstained. The cross bears weight, yet points to the sky. The path is not away from the world, but through it."
+    <cite>— The Lotus Cross</cite>
+  </blockquote>
+
+  <div class="cta reveal">
+    <h2>Begin your journey</h2>
+    <p>Enrollment is open. Complete the form, and our community will review your request. There is no cost to join — only a willingness to walk.</p>
+    <a href="index.html#enroll" class="btn">Join Us →</a>
+  </div>
+
+</div>
+
+<footer>
+  <p>✦ The Lotus Cross — Where the paths converge into one.</p>
+  <p>© 2026 The Lotus Cross. <a href="index.html">← Return to main site</a></p>
+</footer>
+
+<script>
+// Hide/show nav on scroll
+var lastScrollY=window.scrollY;
+window.addEventListener('scroll',function(){
+  var y=window.scrollY;
+  var nav=document.getElementById('mainNav');
+  if(y>lastScrollY && y>140){nav.classList.add('nav-hidden');}
+  else{nav.classList.remove('nav-hidden');}
+  lastScrollY=y;
+},{passive:true});
+// Reveal on scroll
+if('IntersectionObserver' in window){
+  var ro=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){if(en.isIntersecting){en.target.classList.add('visible');ro.unobserve(en.target);}});
+  },{threshold:0.12});
+  document.querySelectorAll('.reveal').forEach(function(s){ro.observe(s);});
+}
+</script>
+
+</body>
+</html>
