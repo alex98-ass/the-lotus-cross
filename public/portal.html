@@ -217,6 +217,8 @@ a{color:var(--gold-deep);text-decoration:none}
       <button class="side-btn" data-tab="circle"><span class="ico">🪷</span><span class="txt">My Circle</span></button>
       <button class="side-btn" data-tab="forty"><span class="ico">🕯️</span><span class="txt">Forty Days</span></button>
       <button class="side-btn" data-tab="archive"><span class="ico">📜</span><span class="txt">Archive</span></button>
+      <button class="side-btn" data-tab="live"><span class="ico">🎥</span><span class="txt">Live</span></button>
+      <button class="side-btn" data-tab="library"><span class="ico">📚</span><span class="txt">Library</span></button>
       <a href="shop.html" class="side-btn" style="text-decoration:none"><span class="ico">🛍️</span><span class="txt">Shop</span></a>
       <button class="side-btn" data-tab="support"><span class="ico">💎</span><span class="txt">Support Us</span></button>
       <div class="spacer"></div>
@@ -228,6 +230,7 @@ a{color:var(--gold-deep);text-decoration:none}
       <section id="view-dashboard" class="view active">
         <div class="dash-greet">Peace, <em id="dashName">traveller</em>.</div>
         <p class="dash-sub">Continue your journey. Every step matters.</p>
+        <p class="dash-sub" id="planBadge" style="margin-bottom:1rem;font-size:.82rem"></p>
         <div class="quote-card" id="challengeCard" style="display:none;margin-bottom:1.5rem"></div>
         <div class="quote-card">
           <div class="q-label" id="reflTitle">Reflection of the Day</div>
@@ -294,6 +297,20 @@ a{color:var(--gold-deep);text-decoration:none}
         <p class="tasks-sub">Six texts, twelve weeks, one portion a week. Free public-domain translations — no purchase, no unlock.</p>
         <div id="archivePlan" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.9rem;margin:1.5rem 0"></div>
         <p style="margin-top:1.2rem"><a href="archive.html" class="cta-btn" style="text-decoration:none">Open the Archive →</a></p>
+      </section>
+
+      <!-- LIVE -->
+      <section id="view-live" class="view">
+        <div class="tasks-head">Live gatherings</div>
+        <p class="tasks-sub">Once a month, unhurried, with time for questions. Supporter plan.</p>
+        <div id="liveBody"></div>
+      </section>
+
+      <!-- LIBRARY -->
+      <section id="view-library" class="view">
+        <div class="tasks-head">The Library</div>
+        <p class="tasks-sub">Printable sheets, the monthly letter, and the recordings. Supporter plan.</p>
+        <div id="libraryBody"></div>
       </section>
 
       <!-- MY CIRCLE -->
@@ -441,6 +458,90 @@ function switchTab(tab){
   if(tab === 'circle') loadCircle();
   if(tab === 'forty') loadForty();
   if(tab === 'archive') renderArchivePlan();
+  if(tab === 'live') loadLive();
+  if(tab === 'library') loadLibrary();
+}
+
+// ===== PLANS AND LOCKS =====
+var myFeatures = {};
+function planLabel(tier){
+  if(tier === 'circle') return 'Circle plan · £9.99 / month';
+  if(tier === 'supporter') return 'Supporter plan · £5 / month';
+  return 'Seeker plan · free, forever';
+}
+function renderPlan(tier, tiers){
+  var el = document.getElementById('planBadge');
+  if(!el) return;
+  el.innerHTML = '<span style="display:inline-block;padding:.25rem .7rem;border-radius:999px;border:1px solid var(--line);background:var(--card)">' +
+    planLabel(tier) + '</span>';
+}
+function applyLocks(features){
+  myFeatures = {};
+  (features || []).forEach(function(f){ myFeatures[f.key] = f; });
+  document.querySelectorAll('.side-btn[data-tab]').forEach(function(b){
+    var f = myFeatures[b.dataset.tab];
+    var label = b.querySelector('.txt');
+    if(!label) return;
+    var base = label.textContent.replace(/\s*🔒$/, '');
+    if(f && !f.unlocked){ label.textContent = base + ' 🔒'; b.dataset.locked = '1'; b.style.opacity = '.72'; }
+    else { label.textContent = base; delete b.dataset.locked; b.style.opacity = ''; }
+  });
+}
+function upsellInto(elId, need, why){
+  var el = document.getElementById(elId);
+  if(!el) return;
+  var price = need === 'circle' ? '£9.99 a month' : '£5 a month';
+  el.innerHTML = '<div class="quote-card">' +
+    '<div class="q-label">Part of the ' + (need === 'circle' ? 'Circle' : 'Supporter') + ' plan</div>' +
+    '<blockquote>' + why + '</blockquote>' +
+    '<p style="color:var(--muted);font-size:.9rem;margin:.8rem 0 1.2rem">' + price + ', cancel whenever you like. Everything essential stays free — this is extra, not a wall.</p>' +
+    '<a href="index.html#membership" class="cta-btn" style="text-decoration:none">See the plans →</a>' +
+    '</div>';
+}
+function loadLive(){
+  var box = document.getElementById('liveBody');
+  if(myFeatures.live && !myFeatures.live.unlocked){
+    return upsellInto('liveBody', 'supporter', 'A live gathering is not a performance — it is the only place where the questions are answered in the order people actually ask them.');
+  }
+  box.innerHTML = '<p style="color:var(--muted)">Loading…</p>';
+  api('/api/member/live').then(function(res){
+    if(!res.ok){ return upsellInto('liveBody', 'supporter', 'Live gatherings are for supporters.'); }
+    var list = res.d.sessions || [];
+    if(!list.length){
+      box.innerHTML = '<div class="quote-card"><div class="q-label">No gathering scheduled</div>' +
+        '<blockquote>The next one will be announced by email. They happen once a month, usually on a Sunday evening, UK time.</blockquote></div>';
+      return;
+    }
+    box.innerHTML = list.map(function(x){
+      var d = new Date(x.starts_at);
+      var when = d.toLocaleString('en-GB', { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' });
+      return '<div class="quote-card" style="margin-bottom:1rem">' +
+        '<div class="q-label">' + when + ' · ' + (x.minutes||60) + ' min</div>' +
+        '<blockquote style="font-style:normal;font-size:1.1rem">' + x.title + '</blockquote>' +
+        (x.notes ? '<p style="color:var(--muted);font-size:.9rem;margin-top:.6rem">' + x.notes + '</p>' : '') +
+        (x.join_url ? '<p style="margin-top:1rem"><a class="cta-btn" style="text-decoration:none" href="' + x.join_url + '" target="_blank" rel="noopener">Join the room →</a></p>' : '<p style="color:var(--muted);font-size:.85rem;margin-top:.8rem">The link appears here 15 minutes before.</p>') +
+        '</div>';
+    }).join('');
+  });
+}
+function loadLibrary(){
+  if(myFeatures.library && !myFeatures.library.unlocked){
+    return upsellInto('libraryBody', 'supporter', 'Printed sheets, the monthly letter, and every recording kept — so that missing a gathering does not mean losing it.');
+  }
+  var box = document.getElementById('libraryBody');
+  box.innerHTML = '<p style="color:var(--muted)">Loading…</p>';
+  api('/api/member/library').then(function(res){
+    if(!res.ok){ return upsellInto('libraryBody', 'supporter', 'The Library is for supporters.'); }
+    var items = res.d.items || [];
+    box.innerHTML = items.map(function(i){
+      return '<div class="quote-card" style="margin-bottom:.9rem;display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap">' +
+        '<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:1.2rem">' + i.title + '</div>' +
+        '<div style="color:var(--muted);font-size:.85rem">' + i.note + '</div></div>' +
+        '<span style="font-size:.72rem;letter-spacing:1px;text-transform:uppercase;color:var(--gold-deep);border:1px solid var(--line);padding:.25rem .6rem;border-radius:6px">' + i.kind + '</span>' +
+        '</div>';
+    }).join('') +
+    '<p style="color:var(--muted);font-size:.85rem">Files are sent by email while the store is being connected.</p>';
+  });
 }
 
 // ===== MY CIRCLE (rank 5 Stewards) =====
@@ -561,6 +662,8 @@ function loadDashboard(){
     }
     renderLeaderboard(u.name);
     renderChallenge(res.d.challenge);
+    renderPlan(res.d.tier || 'free', res.d.tiers);
+    applyLocks(res.d.features);
     var b = res.d.brought || {total:0, approved:0};
     var inv = document.getElementById('inviteLine');
     if(u.referral_code){

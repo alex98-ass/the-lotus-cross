@@ -140,6 +140,16 @@ async function initDb() {
     id SERIAL PRIMARY KEY, actor_id INTEGER, actor_email TEXT, action TEXT, target TEXT, meta TEXT,
     created_at TIMESTAMPTZ DEFAULT now())`);
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_demo BOOLEAN DEFAULT false");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS tier TEXT DEFAULT 'free'");
+  await pool.query(`CREATE TABLE IF NOT EXISTS live_sessions (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    starts_at TIMESTAMPTZ NOT NULL,
+    minutes INTEGER DEFAULT 60,
+    join_url TEXT,
+    notes TEXT,
+    tier_required TEXT DEFAULT 'supporter',
+    created_at TIMESTAMPTZ DEFAULT now())`);
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_pending TEXT");
   await pool.query("INSERT INTO settings (key,value) VALUES ('last_daily_send','') ON CONFLICT (key) DO NOTHING");
@@ -559,7 +569,8 @@ app.get('/api/member/dashboard', requireAuth, async (req, res) => {
       rank: u.rank, xp: u.xp, tasks_completed: u.tasks_completed, streak: u.streak, enrolled_at: u.enrolled_at,
       referral_code: u.referral_code },
     ranks: RANKS, tasks: tasks, doneToday: done.rows.map(r => r.task_id), today,
-    proofsToday: proofsToday, reflection: reflection, circle: circle, brought: brought, challenge: challenge
+    proofsToday: proofsToday, reflection: reflection, circle: circle, brought: brought, challenge: challenge,
+    tier: u.tier || 'free', tiers: TIERS, features: entitlementsFor(u)
   });
 });
 
@@ -570,6 +581,39 @@ app.get('/api/reflection/today', requireAuth, async (req, res) => {
     res.json({ reflection: r, date: todayKey() });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+// ===== WHAT EACH PLAN AND RANK UNLOCKS =====
+const TIER_ORDER = { free: 0, supporter: 1, circle: 2 };
+const TIERS = {
+  free:      { name: 'Seeker',    price: 'Free',        blurb: 'The whole practice, forever free.' },
+  supporter: { name: 'Supporter', price: '£5 / month',  blurb: 'Live gatherings and the library.' },
+  circle:    { name: 'Circle',    price: '£9.99 / month', blurb: 'Everything, plus guidance and a licence to lead.' }
+};
+function tierRank(u) { return TIER_ORDER[(u && u.tier) || 'free'] || 0; }
+function entitled(u, need) { return tierRank(u) >= (TIER_ORDER[need] || 0); }
+
+// Every gated item in the portal, in one place, so the rules cannot drift apart.
+// minRank refers to the practice ranks (0–5); need refers to the plan.
+const FEATURES = [
+  { key: 'today',     label: "Today's reflection", need: 'free',      minRank: 0 },
+  { key: 'tasks',     label: 'Daily practices',    need: 'free',      minRank: 0 },
+  { key: 'community', label: 'The community',      need: 'free',      minRank: 0 },
+  { key: 'forty',     label: 'The Forty Days',     need: 'free',      minRank: 0 },
+  { key: 'archive',   label: 'The Archive',        need: 'free',      minRank: 0 },
+  { key: 'live',      label: 'Live gatherings',    need: 'supporter', minRank: 0 },
+  { key: 'library',   label: 'The Library',        need: 'supporter', minRank: 0 },
+  { key: 'circle',    label: 'Steward a circle',   need: 'circle',    minRank: 5 },
+  { key: 'guidance',  label: 'Quarterly guidance', need: 'circle',    minRank: 2 }
+];
+
+function entitlementsFor(u) {
+  return FEATURES.map(function (f) {
+    return {
+      key: f.key, label: f.label, need: f.need, minRank: f.minRank,
+      unlocked: entitled(u, f.need) && (u.rank || 0) >= f.minRank
+    };
+  });
+}
 
 // ===== LEADERBOARD (the reason people come back tomorrow) =====
 app.get('/api/leaderboard', async (req, res) => {
@@ -682,6 +726,34 @@ app.get('/api/cron/daily-legacy', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ===== LIVE GATHERINGS (Supporter and above) =====
+app.get('/api/member/live', requireAuth, async (req, res) => {
+  try {
+    if (!entitled(req.user, 'supporter')) {
+      return res.status(403).json({ error: 'Live gatherings are part of the Supporter plan.', need: 'supporter' });
+    }
+    const rows = (await pool.query(
+      "SELECT id, title, starts_at, minutes, join_url, notes FROM live_sessions WHERE starts_at > now() - interval '3 hours' ORDER BY starts_at ASC LIMIT 20")).rows;
+    res.json({ sessions: rows, tier: req.user.tier || 'free' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== THE LIBRARY (Supporter and above) =====
+app.get('/api/member/library', requireAuth, async (req, res) => {
+  try {
+    if (!entitled(req.user, 'supporter')) {
+      return res.status(403).json({ error: 'The Library is part of the Supporter plan.', need: 'supporter' });
+    }
+    const items = [
+      { title: 'The twelve-week reading plan', kind: 'PDF', note: 'One page, printable, on the fridge.' },
+      { title: 'Practice sheets — the first ten days', kind: 'PDF', note: 'A page per day, with space to write.' },
+      { title: 'The monthly letter', kind: 'Letter', note: 'Plain text, once a month, no design.' },
+      { title: 'Recordings of past gatherings', kind: 'Audio', note: 'Nothing is deleted.' }
+    ];
+    res.json({ items: items });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ===== CIRCLES (rank 5 Stewards) =====
 // A Steward runs a local circle: a real, in-person or online study group that charges
 // for real teaching/service. The circle remits 25% of its gross receipts to The Lotus Cross
@@ -739,6 +811,43 @@ app.get('/api/member/referrals', requireAuth, async (req, res) => {
     const me = (await pool.query("SELECT referral_code FROM users WHERE id=$1", [req.user.id])).rows[0];
     res.json({ people: people, count: people.length, approved: people.filter(p => p.status === 'approved').length,
       referral_code: me ? me.referral_code : null });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/admin/live', requireAuth, requireAdmin, async (req, res) => {
+  const rows = (await pool.query("SELECT * FROM live_sessions ORDER BY starts_at DESC LIMIT 50")).rows;
+  res.json({ sessions: rows });
+});
+
+app.post('/api/admin/live', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const title = String(req.body.title || '').trim();
+    const starts = String(req.body.starts_at || '').trim();
+    if (!title || !starts) return res.status(400).json({ error: 'Title and start time are required' });
+    const when = new Date(starts);
+    if (isNaN(when.getTime())) return res.status(400).json({ error: 'That start time is not valid' });
+    const row = (await pool.query(
+      "INSERT INTO live_sessions (title, starts_at, minutes, join_url, notes, tier_required) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *",
+      [title, when.toISOString(), parseInt(req.body.minutes, 10) || 60, String(req.body.join_url || '').trim(), String(req.body.notes || '').slice(0, 500), 'supporter'])).rows[0];
+    await audit(req.user, 'live.created', title, when.toISOString());
+    res.json({ ok: true, session: row });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/admin/live/:id', requireAuth, requireAdmin, async (req, res) => {
+  await pool.query("DELETE FROM live_sessions WHERE id=$1", [parseInt(req.params.id, 10)]);
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/set-tier', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const tier = ['free', 'supporter', 'circle'].includes(req.body.tier) ? req.body.tier : null;
+    if (!tier) return res.status(400).json({ error: 'Unknown plan' });
+    const user = (await pool.query("SELECT * FROM users WHERE id=$1", [parseInt(req.body.userId, 10)])).rows[0];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    await pool.query("UPDATE users SET tier=$1 WHERE id=$2", [tier, user.id]);
+    await audit(req.user, 'member.tier_set', user.email, tier);
+    res.json({ ok: true, tier: tier });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -930,7 +1039,7 @@ app.post('/api/admin/proofs/:id/review', requireAuth, requireValidator, async (r
 
 // ===== ADMIN =====
 app.get('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
-  const users = (await pool.query("SELECT id, name, email, country, age, tradition, message, role, status, rank, tasks_completed, streak, enrolled_at, approved_at, COALESCE(is_demo,false) AS is_demo, (password_hash IS NOT NULL) AS has_password FROM users ORDER BY enrolled_at DESC")).rows;
+  const users = (await pool.query("SELECT id, name, email, country, age, tradition, message, role, status, rank, tasks_completed, streak, enrolled_at, approved_at, COALESCE(is_demo,false) AS is_demo, (password_hash IS NOT NULL) AS has_password, COALESCE(tier,'free') AS tier FROM users ORDER BY enrolled_at DESC")).rows;
   res.json({ users });
 });
 

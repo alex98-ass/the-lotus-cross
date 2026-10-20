@@ -134,6 +134,7 @@ footer p{font-size:.8rem;color:var(--muted)}
     <button class="tab" data-tab="evidence" onclick="switchTab('evidence')">Evidence <span class="count zero" id="tabEvidenceCount">0</span></button>
     <button class="tab" data-tab="tasks" onclick="switchTab('tasks')">Tasks</button>
     <button class="tab" data-tab="circles" onclick="switchTab('circles')">Circles</button>
+    <button class="tab" data-tab="live" onclick="switchTab('live')">Live</button>
     <button class="tab" data-tab="system" onclick="switchTab('system')">System</button>
   </div>
 
@@ -172,6 +173,23 @@ footer p{font-size:.8rem;color:var(--muted)}
       </div>
     </div>
     <div id="taskList"></div>
+  </div>
+
+  <!-- LIVE -->
+  <div id="pane-live" class="tabpane">
+    <p class="helper">Gatherings appear in the portal for supporters. Members on the free plan see an invitation to upgrade instead.</p>
+    <div class="card" style="margin-bottom:1.2rem;display:grid;gap:.6rem;max-width:560px">
+      <div class="card-label">Schedule a gathering</div>
+      <input id="liveTitle" placeholder="Title — e.g. The monthly gathering, October">
+      <input id="liveWhen" type="datetime-local">
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+        <input id="liveMinutes" type="number" value="60" placeholder="Minutes" style="width:110px">
+        <input id="liveUrl" placeholder="Join link (Zoom, Meet, Jitsi…)" style="flex:1;min-width:200px">
+      </div>
+      <input id="liveNotes" placeholder="A line of description (optional)">
+      <div><button class="btn" onclick="addSession()">Add</button> <span id="liveMsg" style="font-size:.82rem;color:var(--green)"></span></div>
+    </div>
+    <div id="adminLiveList"></div>
   </div>
 
   <!-- SYSTEM -->
@@ -278,6 +296,7 @@ function switchTab(name){
   if(pane) pane.classList.add('active');
   if(name==='evidence') loadEvidence();
   if(name==='system') loadSystem();
+  if(name==='live') loadAdminLive();
 }
 
 // ---- Evidence, grouped per member ----
@@ -524,6 +543,52 @@ function testEmail(){
     }
   });
 }
+function tierSelectOptions(current){
+  var opts = [['free','Free'],['supporter','Supporter £5'],['circle','Circle £9.99']];
+  return opts.map(function(o){ return '<option value="'+o[0]+'"'+(o[0]===(current||'free')?' selected':'')+'>'+o[1]+'</option>'; }).join('');
+}
+function setTier(userId, tier){
+  api('/api/admin/set-tier',{method:'POST',body:JSON.stringify({userId:parseInt(userId),tier:tier})}).then(function(res){
+    if(!res.ok){ alert(res.d.error||'Could not change the plan.'); return; }
+    loadUsers();
+  });
+}
+function loadAdminLive(){
+  api('/api/admin/live').then(function(res){
+    var box = document.getElementById('adminLiveList');
+    if(!res.ok){ box.innerHTML = '<p style="color:var(--muted)">Could not load.</p>'; return; }
+    var list = res.d.sessions || [];
+    if(!list.length){ box.innerHTML = '<p style="color:var(--muted);font-size:.9rem">Nothing scheduled.</p>'; return; }
+    box.innerHTML = list.map(function(x){
+      var d = new Date(x.starts_at);
+      return '<div class="card" style="margin-bottom:.8rem;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:center">'+
+        '<div><div class="card-label" style="margin:0">'+x.title+'</div>'+
+        '<div style="color:var(--muted);font-size:.85rem">'+d.toLocaleString('en-GB')+' · '+(x.minutes||60)+' min'+(x.join_url?' · link set':' · no link yet')+'</div></div>'+
+        '<button class="btn-sm danger" onclick="deleteSession('+x.id+')">Delete</button></div>';
+    }).join('');
+  });
+}
+function addSession(){
+  var msg = document.getElementById('liveMsg');
+  var body = {
+    title: document.getElementById('liveTitle').value.trim(),
+    starts_at: document.getElementById('liveWhen').value,
+    minutes: document.getElementById('liveMinutes').value,
+    join_url: document.getElementById('liveUrl').value.trim(),
+    notes: document.getElementById('liveNotes').value.trim()
+  };
+  if(!body.title || !body.starts_at){ msg.style.color='var(--red)'; msg.textContent='Title and time are required.'; return; }
+  api('/api/admin/live',{method:'POST',body:JSON.stringify(body)}).then(function(res){
+    if(!res.ok){ msg.style.color='var(--red)'; msg.textContent = res.d.error||'Could not save.'; return; }
+    msg.style.color='var(--green)'; msg.textContent='Scheduled.';
+    document.getElementById('liveTitle').value=''; document.getElementById('liveUrl').value=''; document.getElementById('liveNotes').value='';
+    loadAdminLive();
+  });
+}
+function deleteSession(id){
+  if(!confirm('Delete this gathering?')) return;
+  api('/api/admin/live/'+id,{method:'DELETE'}).then(function(){ loadAdminLive(); });
+}
 function loadUsers(){
   api('/api/admin/users').then(({ok,d})=>{
     if(!ok){
@@ -585,7 +650,8 @@ function renderUsers(){
         (u.status==='approved' && !u.has_password ? '<button class="btn btn-view" onclick="sendSetup('+u.id+')">Send setup link</button>' : '')+
         (u.status!=='approved'?'<button class="btn btn-approve" onclick="approve('+u.id+')">✓ Approve</button>':'')+
         (u.status!=='rejected'?'<button class="btn btn-reject" onclick="reject('+u.id+')">✕ Reject</button>':'')+
-        '<div style="display:flex;gap:.5rem;align-items:center;margin-left:auto"><span style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Rank</span><select class="rank-select" onchange="setRank('+u.id+',this.value)">'+rankSelectOptions(u.rank)+'</select></div>'+
+        '<div style="display:flex;gap:.5rem;align-items:center;margin-left:auto"><span style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Plan</span><select class="rank-select" onchange="setTier('+u.id+',this.value)">'+tierSelectOptions(u.tier)+'</select>'+
+        '<span style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-left:.6rem">Rank</span><select class="rank-select" onchange="setRank('+u.id+',this.value)">'+rankSelectOptions(u.rank)+'</select></div>'+
       '</div>'+
     '</div>';
   });
