@@ -261,7 +261,7 @@ async function loadEmailConfig() {
     rows.forEach(function (r) { map[r.key] = r.value; });
     if (map.email_provider) emailCfg.provider = map.email_provider;
     if (map.email_from) emailCfg.from = map.email_from;
-    if (typeof map.brevo_key === 'string' && map.brevo_key) emailCfg.brevoKey = map.brevo_key;
+    emailCfg.brevoKey = typeof map.brevo_key === 'string' ? map.brevo_key : '';
     console.log('Email config: provider=' + emailCfg.provider + ' from=' + emailCfg.from);
   } catch (e) { console.error('email config load failed', e.message); }
 }
@@ -1155,6 +1155,7 @@ app.post('/api/admin/email-settings', requireAuth, requireAdmin, async (req, res
     await pool.query("INSERT INTO settings (key,value) VALUES ('email_provider',$1) ON CONFLICT (key) DO UPDATE SET value=$1", [provider]);
     if (from) await pool.query("INSERT INTO settings (key,value) VALUES ('email_from',$1) ON CONFLICT (key) DO UPDATE SET value=$1", [from]);
     if (key) await pool.query("INSERT INTO settings (key,value) VALUES ('brevo_key',$1) ON CONFLICT (key) DO UPDATE SET value=$1", [key]);
+    else if (provider !== 'brevo') await pool.query("INSERT INTO settings (key,value) VALUES ('brevo_key','') ON CONFLICT (key) DO UPDATE SET value=''");
     await loadEmailConfig();
     await audit(req.user, 'email.settings', provider, from);
     res.json({ ok: true, provider: emailCfg.provider, from: emailCfg.from });
