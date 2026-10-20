@@ -260,20 +260,31 @@ function sendEmail(to, subject, html) {
       body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, html })
     })
       .then(async (r) => {
-        if (r.ok) { console.log('Email sent via Resend to', to); }
-        else { const t = await r.text(); console.log('Resend failed:', r.status, t.slice(0, 200)); }
+        if (r.ok) { console.log('Email sent via Resend to', to); return { ok: true, via: 'resend' }; }
+        const body = await r.text();
+        console.log('Resend failed:', r.status, body.slice(0, 300));
+        await recordError('email:' + to, new Error('Resend ' + r.status + ' ' + body.slice(0, 300)));
+        return { ok: false, status: r.status, body: body.slice(0, 600), via: 'resend' };
       })
-      .catch(e => console.log('Resend error:', e.message));
+      .catch(async (e) => {
+        console.log('Resend error:', e.message);
+        await recordError('email:' + to, e);
+        return { ok: false, error: e.message, via: 'resend' };
+      });
   }
 
   if (transporter) {
     return transporter.sendMail({ from: EMAIL_FROM, to, subject, html })
-      .then(() => console.log('Email sent to', to))
-      .catch(e => console.log('Email send failed:', e.message));
+      .then(() => { console.log('Email sent to', to); return { ok: true, via: 'smtp' }; })
+      .catch(async (e) => {
+        console.log('Email send failed:', e.message);
+        await recordError('email:' + to, e);
+        return { ok: false, error: e.message, via: 'smtp' };
+      });
   }
 
   console.log('Email logged only (no transport configured) to', to);
-  return Promise.resolve();
+  return Promise.resolve({ ok: false, error: 'no transport configured' });
 }
 
 // ===== MIDDLEWARE =====
@@ -371,7 +382,13 @@ app.post('/api/enroll', rateLimit(5, 60 * 60 * 1000), async (req, res) => {
     const { name, email, country, age, tradition, message, ref } = req.body;
     if (!name || !email) return res.status(400).json({ error: 'Name and email required' });
     const existing = await pool.query("SELECT * FROM users WHERE email=$1", [String(email).toLowerCase().trim()]);
-    if (existing.rows.length > 0) return res.status(409).json({ error: 'An account with this email already exists' });
+    if (existing.rows.length > 0) {
+      const ex = existing.rows[0];
+      if (!ex.password_hash) {
+        return res.status(409).json({ error: 'This email is already registered, but no password has been set for it yet. Use “Set your password” on the sign-in page — or ask us for a setup link.' });
+      }
+      return res.status(409).json({ error: 'This email already has an account. Please sign in instead, or use “Set your password” if you have forgotten it.' });
+    }
     // Single-level referral: who invited this person (informational, no payout attached)
     let referrerId = null;
     if (ref) {
@@ -865,7 +882,7 @@ app.post('/api/admin/proofs/:id/review', requireAuth, requireValidator, async (r
 
 // ===== ADMIN =====
 app.get('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
-  const users = (await pool.query("SELECT id, name, email, country, age, tradition, message, role, status, rank, tasks_completed, streak, enrolled_at, approved_at FROM users ORDER BY enrolled_at DESC")).rows;
+  const users = (await pool.query("SELECT id, name, email, country, age, tradition, message, role, status, rank, tasks_completed, streak, enrolled_at, approved_at, COALESCE(is_demo,false) AS is_demo, (password_hash IS NOT NULL) AS has_password FROM users ORDER BY enrolled_at DESC")).rows;
   res.json({ users });
 });
 
@@ -1033,6 +1050,32 @@ app.post('/api/admin/2fa/disable', requireAuth, requireAdmin, async (req, res) =
 
 app.get('/api/admin/2fa/status', requireAuth, requireAdmin, async (req, res) => {
   res.json({ enabled: !!req.user.totp_secret, pending: !!req.user.totp_pending });
+});
+
+// Admin: when an email does not arrive, the link must still be obtainable.
+app.post('/api/admin/send-setup', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const user = (await pool.query("SELECT * FROM users WHERE id=$1", [parseInt(req.body.userId, 10)])).rows[0];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const link = await issueSetupLink(user);
+    const mail = await sendEmail(user.email, 'Set your password — The Lotus Cross',
+      `<h2>✦ Set your password, ${user.name}</h2>
+       <p>Use this link within seven days to choose your password:</p>
+       <p><a href="${link}">${link}</a></p>
+       <p>If you did not ask for this, ignore this email — nothing has changed.</p>`);
+    await audit(req.user, 'member.setup_link', user.email, mail && mail.ok ? 'emailed' : 'email failed: ' + JSON.stringify(mail).slice(0, 120));
+    res.json({ ok: true, link: link, email: mail || { ok: false } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: prove whether email delivery works, and see exactly what the provider says.
+app.get('/api/admin/email-test', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const to = String(req.query.to || req.user.email);
+    const r = await sendEmail(to, 'The Lotus Cross — delivery test',
+      '<h2>✦ Test</h2><p>If you are reading this, delivery works.</p>');
+    res.json({ to, result: r, from: EMAIL_FROM, provider: RESEND_API_KEY ? 'resend' : (transporter ? 'smtp' : 'none') });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ===== OVERSIGHT: AUDIT TRAIL, ERRORS, BACKUP =====

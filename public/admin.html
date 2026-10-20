@@ -190,6 +190,16 @@ footer p{font-size:.8rem;color:var(--muted)}
     </div>
 
     <div class="card" style="margin-bottom:1.2rem">
+      <div class="card-label">Email delivery</div>
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:.8rem">Sends a real message and reports exactly what the provider answers. If this fails, members will not receive approval or password emails.</p>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <input id="emailTestTo" placeholder="Send the test to…" style="padding:.6rem .8rem;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--text);border-radius:2px;min-width:220px">
+        <button class="btn" onclick="testEmail()">Send test</button>
+      </div>
+      <div id="emailTestResult" style="margin-top:.8rem;font-size:.85rem;color:var(--muted)"></div>
+    </div>
+
+    <div class="card" style="margin-bottom:1.2rem">
       <div class="card-label">Recent actions</div>
       <div id="auditList" style="margin-top:.6rem"><p style="color:var(--muted);font-size:.9rem">Loading...</p></div>
     </div>
@@ -429,6 +439,32 @@ function loadErrors(){
   });
 }
 
+function sendSetup(id){
+  api('/api/admin/send-setup',{method:'POST',body:JSON.stringify({userId:id})}).then(function(res){
+    if(!res.ok){ alert(res.d.error||'Could not create a link.'); return; }
+    var sent = res.d.email && res.d.email.ok;
+    var msg = sent
+      ? 'Email sent. You can also copy this link and send it yourself:'
+      : 'The email did NOT go out (' + ((res.d.email && (res.d.email.body || res.d.email.error)) || 'unknown reason') + ').\n\nCopy this link and send it to the member yourself:';
+    window.prompt(msg, res.d.link);
+  });
+}
+function testEmail(){
+  var to = document.getElementById('emailTestTo').value.trim();
+  var box = document.getElementById('emailTestResult');
+  box.textContent = 'Sending…';
+  api('/api/admin/email-test' + (to ? '?to=' + encodeURIComponent(to) : '')).then(function(res){
+    if(!res.ok){ box.innerHTML = '<span style="color:var(--red)">' + (res.d.error||'Failed') + '</span>'; return; }
+    var r = res.d.result || {};
+    if(r.ok){
+      box.innerHTML = '<span style="color:var(--green)">Delivered to ' + res.d.to + ' via ' + res.d.provider + '.</span>';
+    } else {
+      box.innerHTML = '<span style="color:var(--red)">Provider said: ' + (r.status || '') + ' ' +
+        String(r.body || r.error || '').replace(/</g,'&lt;').slice(0,300) + '</span>' +
+        '<div style="margin-top:.4rem">Sender address: <code>' + (res.d.from||'') + '</code></div>';
+    }
+  });
+}
 function loadUsers(){
   api('/api/admin/users').then(({ok,d})=>{
     if(!ok){
@@ -487,6 +523,7 @@ function renderUsers(){
       (u.message?'<div class="user-message">"'+u.message+'"</div>':'')+
       '<div class="user-actions">'+
         (evCount?'<button class="ev-btn" onclick="openEvidence('+u.id+')">📷 '+evCount+' evidence waiting →</button>':'')+
+        (u.status==='approved' && !u.has_password ? '<button class="btn btn-view" onclick="sendSetup('+u.id+')">Send setup link</button>' : '')+
         (u.status!=='approved'?'<button class="btn btn-approve" onclick="approve('+u.id+')">✓ Approve</button>':'')+
         (u.status!=='rejected'?'<button class="btn btn-reject" onclick="reject('+u.id+')">✕ Reject</button>':'')+
         '<div style="display:flex;gap:.5rem;align-items:center;margin-left:auto"><span style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Rank</span><select class="rank-select" onchange="setRank('+u.id+',this.value)">'+rankSelectOptions(u.rank)+'</select></div>'+
