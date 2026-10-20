@@ -139,6 +139,7 @@ async function initDb() {
   await pool.query(`CREATE TABLE IF NOT EXISTS audit_log (
     id SERIAL PRIMARY KEY, actor_id INTEGER, actor_email TEXT, action TEXT, target TEXT, meta TEXT,
     created_at TIMESTAMPTZ DEFAULT now())`);
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_demo BOOLEAN DEFAULT false");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_pending TEXT");
   await pool.query("INSERT INTO settings (key,value) VALUES ('last_daily_send','') ON CONFLICT (key) DO NOTHING");
@@ -510,14 +511,14 @@ app.get('/api/leaderboard', async (req, res) => {
   try {
     const rows = (await pool.query(
       `SELECT id, name, country, rank, xp, streak, tasks_completed
-       FROM users WHERE status='approved' AND role<>'admin'
+       FROM users WHERE status='approved' AND role<>'admin' AND COALESCE(is_demo,false)=false
        ORDER BY tasks_completed DESC, streak DESC, xp DESC LIMIT 12`)).rows;
     const board = rows.map(function (u, i) {
       const parts = String(u.name || '').trim().split(/\s+/);
       const short = parts.length > 1 ? parts[0] + ' ' + parts[parts.length - 1][0] + '.' : parts[0];
       return { pos: i + 1, name: short, country: u.country, rank: u.rank, xp: u.xp, streak: u.streak, tasks_completed: u.tasks_completed };
     });
-    const total = (await pool.query("SELECT COUNT(*)::int AS c FROM users WHERE status='approved' AND role<>'admin'")).rows[0].c;
+    const total = (await pool.query("SELECT COUNT(*)::int AS c FROM users WHERE status='approved' AND role<>'admin' AND COALESCE(is_demo,false)=false")).rows[0].c;
     res.json({ leaderboard: board, total: total, ranks: RANKS });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -568,7 +569,7 @@ async function sendDailyReflection(force) {
   const r = await reflectionForToday();
   if (!r) return { ok: false, reason: 'no reflection' };
   const users = (await pool.query(
-    "SELECT id, name, email FROM users WHERE status='approved' AND COALESCE(email_optin,true)=true AND email IS NOT NULL")).rows;
+    "SELECT id, name, email FROM users WHERE status='approved' AND COALESCE(email_optin,true)=true AND COALESCE(is_demo,false)=false AND email IS NOT NULL")).rows;
   const base = process.env.PUBLIC_URL || 'https://the-lotus-cross.onrender.com';
   let sent = 0;
   for (const u of users) {
@@ -599,7 +600,7 @@ app.get('/api/cron/daily-legacy', async (req, res) => {
     const r = await reflectionForToday();
     if (!r) return res.json({ ok: false, reason: 'no reflection' });
     const users = (await pool.query(
-      "SELECT id, name, email FROM users WHERE status='approved' AND COALESCE(email_optin,true)=true AND email IS NOT NULL")).rows;
+      "SELECT id, name, email FROM users WHERE status='approved' AND COALESCE(email_optin,true)=true AND COALESCE(is_demo,false)=false AND email IS NOT NULL")).rows;
     const base = process.env.PUBLIC_URL || 'https://the-lotus-cross.onrender.com';
     let sent = 0;
     for (const u of users) {

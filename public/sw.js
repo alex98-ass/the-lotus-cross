@@ -3,7 +3,7 @@
 // Strategy: network-first for pages and data (so nothing is ever stale),
 // cache-first for the shell (icons, fonts, legal pages, offline page).
 
-const VERSION = 'lotus-v4';
+const VERSION = 'lotus-v5';
 const SHELL = [
   '/offline.html',
   '/legal.css',
@@ -38,8 +38,11 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api/')) return;          // never cache personal data
 
   const isPage = req.mode === 'navigate' || /\.html$/.test(url.pathname);
+  // Scripts and styles are fetched fresh first, so every visitor always gets the current
+  // version of the app — a stale script is worse than a slow one.
+  const isCode = /\.(js|css)$/.test(url.pathname);
 
-  if (isPage) {
+  if (isPage || isCode) {
     event.respondWith(
       fetch(req)
         .then((res) => {
