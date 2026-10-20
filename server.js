@@ -142,6 +142,7 @@ async function initDb() {
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_demo BOOLEAN DEFAULT false");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS tier TEXT DEFAULT 'free'");
   await pool.query("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS tier_required TEXT DEFAULT 'free'");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS tier_lifetime BOOLEAN DEFAULT false");
   await pool.query(`CREATE TABLE IF NOT EXISTS live_sessions (
     id SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
@@ -579,7 +580,7 @@ app.get('/api/member/dashboard', requireAuth, async (req, res) => {
       referral_code: u.referral_code },
     ranks: RANKS, tasks: visibleTasks, doneToday: done.rows.map(r => r.task_id), today,
     proofsToday: proofsToday, reflection: reflection, circle: circle, brought: brought, challenge: challenge,
-    tier: u.tier || 'free', tiers: TIERS, features: entitlementsFor(u)
+    tier: u.tier || 'free', tierLifetime: !!u.tier_lifetime, tiers: TIERS, features: entitlementsFor(u)
   });
 });
 
@@ -896,7 +897,7 @@ app.post('/api/admin/set-tier', requireAuth, requireAdmin, async (req, res) => {
     if (!tier) return res.status(400).json({ error: 'Unknown plan' });
     const user = (await pool.query("SELECT * FROM users WHERE id=$1", [parseInt(req.body.userId, 10)])).rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
-    await pool.query("UPDATE users SET tier=$1 WHERE id=$2", [tier, user.id]);
+    await pool.query("UPDATE users SET tier=$1, tier_lifetime=$2 WHERE id=$3", [tier, !!req.body.lifetime, user.id]);
     await audit(req.user, 'member.tier_set', user.email, tier);
     res.json({ ok: true, tier: tier });
   } catch (e) { res.status(500).json({ error: e.message }); }

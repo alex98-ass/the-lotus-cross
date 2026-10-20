@@ -677,6 +677,8 @@ function loadDashboard(){
       (rank.icon ? rank.icon + ' ' : '') + rank.name +
       ' · ' + (u.tasks_completed || 0) + ' practices' +
       ' · ' + (streak || 0) + '-day streak';
+    var planWord = res.d.tier === 'circle' ? 'Circle' : (res.d.tier === 'supporter' ? 'Supporter' : '');
+    if (planWord) document.getElementById('dashMeta').textContent += ' · ' + planWord + (res.d.tierLifetime ? ' for life' : '');
     var r = res.d.reflection;
     if(r){
       document.getElementById('reflTitle').textContent = r.title || 'Reflection of the Day';
