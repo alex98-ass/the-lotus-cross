@@ -10,6 +10,7 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const REFLECTIONS = require('./reflections');
+const PRACTICES = require('./practices');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -111,6 +112,25 @@ async function initDb() {
     );
   `);
   // Migration: single-level referral (who brought this member)
+  // Progression: practices unlock as the member advances; later ones require photo evidence
+  await pool.query("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS min_count INTEGER DEFAULT 0");
+  await pool.query("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS requires_proof BOOLEAN DEFAULT false");
+  await pool.query("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS proof_hint TEXT DEFAULT ''");
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS proofs (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      task_id INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      caption TEXT,
+      image TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      reviewed_by INTEGER,
+      reviewed_at TIMESTAMPTZ,
+      review_note TEXT,
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`);
+  await pool.query("CREATE INDEX IF NOT EXISTS proofs_status_idx ON proofs(status)");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by INTEGER");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code TEXT");
   await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS users_referral_code_idx ON users(referral_code) WHERE referral_code IS NOT NULL");
@@ -148,6 +168,18 @@ async function initDb() {
       await pool.query("INSERT INTO tasks (title, description, category, xp, sort_order) VALUES ($1,$2,$3,$4,$5)", d);
     }
     console.log('  Default tasks seeded.');
+  }
+  // Seed the ladder of outward practices (from the 10th practice onward, with photo evidence)
+  const pc = await pool.query("SELECT COUNT(*)::int AS c FROM tasks WHERE requires_proof = true");
+  if (pc.rows[0].c === 0) {
+    let i = 0;
+    for (const p of PRACTICES) {
+      await pool.query(
+        "INSERT INTO tasks (title, description, category, xp, sort_order, min_count, requires_proof, proof_hint) VALUES ($1,$2,$3,$4,$5,$6,true,$7)",
+        [p.title, p.desc, 'service', p.xp, 10 + i, p.min, p.hint]);
+      i++;
+    }
+    console.log('  Ladder of practices seeded (' + PRACTICES.length + ').');
   }
   // Seed daily reflections (30, rotating by calendar day)
   const rc = await pool.query("SELECT COUNT(*)::int AS c FROM reflections");
@@ -228,7 +260,7 @@ function sendEmail(to, subject, html) {
 }
 
 // ===== MIDDLEWARE =====
-app.use(express.json());
+app.use(express.json({ limit: '6mb' }));
 app.use(express.static(PUBLIC_DIR));
 
 async function createSession(userId) {
@@ -266,11 +298,11 @@ const RANKS = [
   { id: 1, name: 'Initiate', icon: '🌿', xpNeeded: 30 },
   { id: 2, name: 'Disciple', icon: '🔥', xpNeeded: 90 },
   { id: 3, name: 'Elder', icon: '⭐', xpNeeded: 200 },
-  { id: 4, name: 'Guide', icon: '✦', xpNeeded: 500 },
-  { id: 5, name: 'Steward', icon: '🪷', xpNeeded: 1200 }
+  { id: 4, name: 'Guide', icon: '✦', xpNeeded: 400 },
+  { id: 5, name: 'Steward', icon: '🪷', xpNeeded: 500 }
 ];
 function calcRank(tasks) {
-  if (tasks >= 1200) return 5;
+  if (tasks >= 500) return 5;
   if (tasks >= 200) return 4;
   if (tasks >= 90) return 3;
   if (tasks >= 30) return 2;
@@ -341,7 +373,11 @@ app.get('/api/member/dashboard', requireAuth, async (req, res) => {
   const u = req.user;
   const today = new Date().toISOString().slice(0, 10);
   const done = await pool.query("SELECT task_id FROM tasks_done WHERE user_id=$1 AND date=$2", [u.id, today]);
-  const tasks = (await pool.query("SELECT id, title, description, category, xp FROM tasks WHERE active=true ORDER BY sort_order, id")).rows;
+  const tasks = (await pool.query(
+    "SELECT id, title, description, category, xp, min_count, requires_proof, proof_hint FROM tasks WHERE active=true AND COALESCE(min_count,0) <= $1 ORDER BY COALESCE(min_count,0) DESC, sort_order, id LIMIT 12",
+    [u.tasks_completed || 0])).rows;
+  const proofsToday = (await pool.query(
+    "SELECT task_id, status, id FROM proofs WHERE user_id=$1 AND date=$2 ORDER BY created_at DESC", [u.id, today])).rows;
   const reflection = await reflectionForToday();
   const circle = (await pool.query("SELECT * FROM circles WHERE steward_id=$1", [u.id])).rows[0] || null;
   const brought = (await pool.query(
@@ -351,7 +387,7 @@ app.get('/api/member/dashboard', requireAuth, async (req, res) => {
       rank: u.rank, xp: u.xp, tasks_completed: u.tasks_completed, streak: u.streak, enrolled_at: u.enrolled_at,
       referral_code: u.referral_code },
     ranks: RANKS, tasks: tasks, doneToday: done.rows.map(r => r.task_id), today,
-    reflection: reflection, circle: circle, brought: brought
+    proofsToday: proofsToday, reflection: reflection, circle: circle, brought: brought
   });
 });
 
@@ -438,8 +474,9 @@ app.post('/api/member/task', requireAuth, async (req, res) => {
     const taskId = String(req.body.taskId);
     const u = req.user;
     const today = new Date().toISOString().slice(0, 10);
-    const task = (await pool.query("SELECT id, xp FROM tasks WHERE id=$1 AND active=true", [parseInt(taskId, 10)])).rows[0];
+    const task = (await pool.query("SELECT id, xp, requires_proof FROM tasks WHERE id=$1 AND active=true", [parseInt(taskId, 10)])).rows[0];
     if (!task) return res.status(400).json({ error: 'Invalid task' });
+    if (task.requires_proof) return res.status(400).json({ error: 'This practice is credited only after a photograph is reviewed' });
     const xp = task.xp || 10;
     const existing = await pool.query("SELECT * FROM tasks_done WHERE user_id=$1 AND task_id=$2 AND date=$3", [u.id, taskId, today]);
     if (existing.rows.length > 0) {
@@ -462,6 +499,111 @@ app.post('/api/member/task', requireAuth, async (req, res) => {
         `<h2>✦ Congratulations, ${updated.name}!</h2><p>You have advanced to the rank of <strong>${RANKS[newRank].name}</strong> ${RANKS[newRank].icon}.</p><p>Continue walking.</p>`);
     }
     res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== PROOFS (outward practices, evidenced and reviewed) =====
+app.post('/api/member/proof', requireAuth, async (req, res) => {
+  try {
+    const u = req.user;
+    const taskId = parseInt(req.body.taskId, 10);
+    const image = String(req.body.image || '');
+    const caption = String(req.body.caption || '').slice(0, 400);
+    if (!taskId) return res.status(400).json({ error: 'Task required' });
+    if (!/^data:image\/(jpeg|jpg|png|webp);base64,/.test(image)) return res.status(400).json({ error: 'A photograph is required (JPEG or PNG)' });
+    if (image.length > 4 * 1024 * 1024) return res.status(413).json({ error: 'The photograph is too large. Please use a smaller one.' });
+    const task = (await pool.query("SELECT * FROM tasks WHERE id=$1 AND active=true", [taskId])).rows[0];
+    if (!task) return res.status(404).json({ error: 'Practice not found' });
+    if (!task.requires_proof) return res.status(400).json({ error: 'This practice does not need a photograph' });
+    if ((task.min_count || 0) > (u.tasks_completed || 0)) return res.status(403).json({ error: 'This practice is not yet unlocked for you' });
+    const today = todayKey();
+    const dup = (await pool.query("SELECT id FROM proofs WHERE user_id=$1 AND task_id=$2 AND date=$3", [u.id, taskId, today])).rows[0];
+    if (dup) return res.status(409).json({ error: 'You have already submitted evidence for this practice today' });
+    const row = (await pool.query(
+      "INSERT INTO proofs (user_id, task_id, date, caption, image) VALUES ($1,$2,$3,$4,$5) RETURNING id",
+      [u.id, taskId, today, caption, image])).rows[0];
+    const validators = (await pool.query("SELECT email FROM users WHERE role='admin'")).rows.map(r => r.email);
+    validators.forEach(mail => sendEmail(mail, 'Practice awaiting review: ' + u.name,
+      `<h2>Evidence submitted</h2><p><strong>${u.name}</strong> submitted a photograph for “${task.title}”.</p><p>Open the admin panel to approve or decline it.</p>`));
+    res.json({ ok: true, id: row.id, status: 'pending' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/member/proofs', requireAuth, async (req, res) => {
+  try {
+    const rows = (await pool.query(
+      `SELECT p.id, p.task_id, p.date, p.caption, p.status, p.review_note, p.created_at, t.title
+       FROM proofs p JOIN tasks t ON t.id=p.task_id
+       WHERE p.user_id=$1 ORDER BY p.created_at DESC LIMIT 40`, [req.user.id])).rows;
+    res.json({ proofs: rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/proofs/:id/image', requireAuth, async (req, res) => {
+  try {
+    const p = (await pool.query("SELECT * FROM proofs WHERE id=$1", [parseInt(req.params.id, 10)])).rows[0];
+    if (!p) return res.status(404).send('Not found');
+    const allowed = p.user_id === req.user.id || req.user.role === 'admin' || (req.user.rank || 0) >= 4;
+    if (!allowed) return res.status(403).send('Forbidden');
+    const m = /^data:(image\/[a-z+]+);base64,(.*)$/i.exec(p.image);
+    if (!m) return res.status(500).send('Bad image');
+    res.set('Content-Type', m[1]).set('Cache-Control', 'private, max-age=3600').send(Buffer.from(m[2], 'base64'));
+  } catch (e) { res.status(500).send('Error'); }
+});
+
+// Reviewing evidence is the work of Guides (rank 4+) and admins
+async function requireValidator(req, res, next) {
+  if (req.user.role === 'admin' || (req.user.rank || 0) >= 4) return next();
+  return res.status(403).json({ error: 'Only Guides and Stewards may review evidence' });
+}
+
+app.get('/api/admin/proofs', requireAuth, requireValidator, async (req, res) => {
+  try {
+    const status = ['pending', 'approved', 'rejected'].includes(req.query.status) ? req.query.status : 'pending';
+    const rows = (await pool.query(
+      `SELECT p.id, p.task_id, p.date, p.caption, p.status, p.created_at,
+              t.title AS task_title, u.name AS member_name, u.email AS member_email, u.rank AS member_rank
+       FROM proofs p JOIN tasks t ON t.id=p.task_id JOIN users u ON u.id=p.user_id
+       WHERE p.status=$1 ORDER BY p.created_at ASC LIMIT 60`, [status])).rows;
+    res.json({ proofs: rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/proofs/:id/review', requireAuth, requireValidator, async (req, res) => {
+  try {
+    const proofId = parseInt(req.params.id, 10);
+    const action = req.body.action === 'approve' ? 'approve' : 'reject';
+    const note = String(req.body.note || '').slice(0, 400);
+    const p = (await pool.query("SELECT * FROM proofs WHERE id=$1", [proofId])).rows[0];
+    if (!p) return res.status(404).json({ error: 'Evidence not found' });
+    if (p.status !== 'pending') return res.status(409).json({ error: 'Already reviewed' });
+    const task = (await pool.query("SELECT * FROM tasks WHERE id=$1", [p.task_id])).rows[0];
+    if (action === 'reject') {
+      await pool.query("UPDATE proofs SET status='rejected', reviewed_by=$1, reviewed_at=now(), review_note=$2 WHERE id=$3", [req.user.id, note, proofId]);
+      return res.json({ ok: true, status: 'rejected' });
+    }
+    await pool.query("UPDATE proofs SET status='approved', reviewed_by=$1, reviewed_at=now(), review_note=$2 WHERE id=$3", [req.user.id, note, proofId]);
+    // Credit the practice (once per day, like any other)
+    const xp = task.xp || 20;
+    await pool.query("INSERT INTO tasks_done (user_id, task_id, date) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING", [p.user_id, p.task_id, p.date]);
+    const u2 = (await pool.query("SELECT * FROM users WHERE id=$1", [p.user_id])).rows[0];
+    let streak = u2.streak || 0;
+    if (u2.last_task_date !== p.date) {
+      const y = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      streak = (u2.last_task_date === y) ? streak + 1 : 1;
+    }
+    await pool.query("UPDATE users SET tasks_completed = tasks_completed + 1, xp = xp + $1, streak=$2, last_task_date=$3 WHERE id=$4",
+      [xp, streak, p.date, p.user_id]);
+    const updated = (await pool.query("SELECT * FROM users WHERE id=$1", [p.user_id])).rows[0];
+    const newRank = calcRank(updated.tasks_completed);
+    if (newRank !== updated.rank) {
+      await pool.query("UPDATE users SET rank=$1 WHERE id=$2", [newRank, u2.id]);
+      sendEmail(updated.email, 'You have advanced to ' + RANKS[newRank].name,
+        `<h2>✦ ${updated.name}, you have advanced</h2><p>You are now <strong>${RANKS[newRank].name}</strong> ${RANKS[newRank].icon}.</p>`);
+    }
+    sendEmail(updated.email, 'Your practice was accepted',
+      `<h2>✓ ${task.title}</h2><p>${req.user.name} accepted the evidence you submitted. The practice has been credited to your path.</p>${note ? '<p>Note: ' + note + '</p>' : ''}`);
+    res.json({ ok: true, status: 'approved', xp: xp });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -545,7 +687,7 @@ app.post('/api/admin/set-rank', requireAuth, requireAdmin, async (req, res) => {
     if (isNaN(r) || r < 0 || r > 5) return res.status(400).json({ error: 'Invalid rank (0-5)' });
     const user = (await pool.query("SELECT * FROM users WHERE id=$1", [userId])).rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
-    const thresholds = [0, 7, 30, 90, 200, 1200];
+    const thresholds = [0, 7, 30, 90, 200, 500];
     await pool.query("UPDATE users SET rank=$1, tasks_completed=$2 WHERE id=$3", [r, thresholds[r], user.id]);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }

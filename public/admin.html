@@ -133,6 +133,10 @@ footer p{font-size:.8rem;color:var(--muted)}
   </div>
   <div id="taskList"></div>
 
+  <div class="section-title">Evidence <span style="color:var(--gold)">Awaiting Review</span></div>
+  <p style="color:var(--muted);font-size:.9rem;margin-bottom:1rem">Outward practices are credited only once a photograph is accepted. Guides (rank 4+) and admins review them.</p>
+  <div id="proofList"></div>
+
   <div class="section-title">Manage <span style="color:var(--gold)">Circles</span></div>
   <p style="color:var(--muted);font-size:.9rem;margin-bottom:1rem">Circles are led by Stewards (rank 5). Each remits 25% of what it receives for teaching and service; the Steward keeps 75%.</p>
   <div id="circleList"></div>
@@ -161,6 +165,42 @@ function init(){
   loadUsers();
   loadTasks();
   loadCircles();
+  loadProofs();
+}
+
+function loadProofs(){
+  api('/api/admin/proofs?status=pending').then(function(res){
+    var box=document.getElementById('proofList');
+    if(!res.ok){ box.innerHTML='<p style="color:var(--muted)">Could not load evidence.</p>'; return; }
+    var ps=res.d.proofs||[];
+    if(!ps.length){ box.innerHTML='<p style="color:var(--muted);font-size:.9rem">Nothing waiting. The path is clear.</p>'; return; }
+    box.innerHTML=ps.map(function(p){
+      return '<div class="card" style="margin-bottom:.9rem">'+
+        '<div class="card-label">'+p.task_title+'</div>'+
+        '<p style="color:var(--muted);font-size:.88rem;margin-bottom:.5rem">'+p.member_name+' ('+p.member_email+') · rank '+p.member_rank+' · submitted '+new Date(p.created_at).toLocaleString('en-GB')+'</p>'+
+        (p.caption?'<p style="font-size:.9rem;margin-bottom:.6rem">“'+p.caption+'”</p>':'')+
+        '<img id="pi_'+p.id+'" alt="evidence" style="max-width:320px;width:100%;border-radius:8px;border:1px solid var(--border);display:block;margin-bottom:.7rem">'+
+        '<div style="display:flex;gap:.5rem;flex-wrap:wrap">'+
+          '<button class="btn btn-approve" onclick="reviewProof('+p.id+',\'approve\')">✓ Accept</button>'+
+          '<button class="btn btn-reject" onclick="reviewProof('+p.id+',\'reject\')">✕ Decline</button>'+
+        '</div></div>';
+    }).join('');
+    ps.forEach(function(p){ loadProofImage(p.id); });
+  });
+}
+function loadProofImage(id){
+  fetch('/api/proofs/'+id+'/image',{headers:{'Authorization':'Bearer '+getToken()}})
+    .then(function(r){ return r.ok ? r.blob() : null; })
+    .then(function(b){
+      var el=document.getElementById('pi_'+id);
+      if(b && el){ el.src=URL.createObjectURL(b); }
+    }).catch(function(){});
+}
+function reviewProof(id, action){
+  var note='';
+  if(action==='reject'){ note=prompt('Why is it declined? (shown to the member)')||''; if(note===null) return; }
+  api('/api/admin/proofs/'+id+'/review',{method:'POST',body:JSON.stringify({action:action,note:note})})
+    .then(function(res){ if(res.ok){ loadProofs(); loadUsers(); } else { alert(res.d.error||'Could not review.'); } });
 }
 
 function loadUsers(){

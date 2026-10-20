@@ -233,6 +233,7 @@ a{color:var(--gold-deep);text-decoration:none}
       <section id="view-tasks" class="view">
         <div class="tasks-head">Daily Tasks</div>
         <p class="tasks-sub">Check each task as you complete it. Each one earns <strong>+20 XP</strong> and builds your streak.</p>
+        <input type="file" id="proofFile" accept="image/*" capture="environment" style="display:none" onchange="submitProofFile(this.files[0])">
         <div id="taskList"></div>
         <div class="all-done" id="allTasksDone">✦ You've completed all of today's tasks. Return tomorrow.<br><span style="font-size:.9rem;color:var(--muted);font-style:normal">The path is walked one day at a time.</span></div>
       </section>
@@ -311,6 +312,7 @@ var currentTab = 'dashboard';
 var currentChannel = 'general';
 var currentTasks = [];
 var doneToday = [];
+var proofsToday = [];
 var localXp = 0;
 var streak = 0;
 var chatPollTimer = null;
@@ -404,7 +406,7 @@ function loadCircle(){
     if(!res.ok){ body.innerHTML = '<p style="color:var(--muted)">Could not load your circle.</p>'; return; }
     var d = res.d, c = d.circle;
     if(!d.eligible){
-      var need = 1200;
+      var need = 500;
       api('/api/member/dashboard').then(function(r2){
         var done = (r2.ok && r2.d.user) ? r2.d.user.tasks_completed : 0;
         var pct = Math.min(100, Math.round(done/need*100));
@@ -528,10 +530,16 @@ function loadTasks(){
     if(!res.ok){ if(res.d.error==='Not authenticated') logout(); return; }
     currentTasks = (res.d.tasks && res.d.tasks.length) ? res.d.tasks : DAILY_TASKS;
     doneToday = res.d.doneToday || [];
+    proofsToday = res.d.proofsToday || [];
     localXp = res.d.user.xp || 0;
     renderTasks();
     renderXp();
   });
+}
+function proofStateFor(taskId){
+  var s = null;
+  (proofsToday||[]).forEach(function(p){ if(String(p.task_id)===String(taskId)) s = p; });
+  return s;
 }
 function renderTasks(){
   var list = document.getElementById('taskList');
@@ -541,14 +549,65 @@ function renderTasks(){
     var isDone = doneToday.indexOf(String(t.id)) !== -1;
     if(!isDone) allDone = false;
     var xpVal = t.xp || 20;
-    html += '<div class="task-card'+(isDone?' done':'')+'" onclick="toggleTask('+t.id+')">'+
-      '<div class="task-check'+(isDone?' checked':'')+'"></div>'+
-      '<div class="task-body"><div class="task-title">'+(t.title||t.task||'Task')+'</div>'+
-      '<div class="task-desc">'+(t.description||t.desc||'')+'</div>'+
-      '<div class="task-xp">+'+xpVal+' XP</div></div></div>';
+    if(t.requires_proof){
+      var pr = proofStateFor(t.id);
+      var badge = '', action = '';
+      if(isDone){ badge = '<span style="color:#2f6b3a;font-size:.78rem;font-weight:600">✓ accepted</span>'; }
+      else if(pr && pr.status==='pending'){ badge = '<span style="color:var(--gold-deep);font-size:.78rem;font-weight:600">⏳ awaiting review</span>'; }
+      else if(pr && pr.status==='rejected'){ badge = '<span style="color:#a33;font-size:.78rem;font-weight:600">✕ declined — try again tomorrow</span>'; }
+      else { action = '<button class="cta-btn" style="border:none;cursor:pointer;padding:.5rem 1rem;font-size:.8rem" onclick="pickProof('+t.id+')">Add photograph</button>'; }
+      html += '<div class="task-card'+(isDone?' done':'')+'">'+
+        '<div class="task-check'+(isDone?' checked':'')+'"></div>'+
+        '<div class="task-body"><div class="task-title">'+(t.title||'Practice')+'</div>'+
+        '<div class="task-desc">'+(t.description||'')+'</div>'+
+        (t.proof_hint ? '<div class="task-desc" style="font-style:italic;opacity:.8">'+t.proof_hint+'</div>' : '')+
+        '<div class="task-xp">+'+xpVal+' XP</div>'+
+        '<div style="margin-top:.7rem">'+badge+' '+action+'</div>'+
+        '</div></div>';
+    } else {
+      html += '<div class="task-card'+(isDone?' done':'')+'" onclick="toggleTask('+t.id+')">'+
+        '<div class="task-check'+(isDone?' checked':'')+'"></div>'+
+        '<div class="task-body"><div class="task-title">'+(t.title||t.task||'Task')+'</div>'+
+        '<div class="task-desc">'+(t.description||t.desc||'')+'</div>'+
+        '<div class="task-xp">+'+xpVal+' XP</div></div></div>';
+    }
   });
   list.innerHTML = html;
   document.getElementById('allTasksDone').style.display = allDone ? 'block':'none';
+}
+
+// Photograph evidence — resized in the browser before upload (keeps the cost sane)
+var pendingTaskId = null;
+function pickProof(taskId){
+  pendingTaskId = taskId;
+  var inp = document.getElementById('proofFile');
+  inp.value = '';
+  inp.click();
+}
+function submitProofFile(file){
+  if(!file || !pendingTaskId) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    var img = new Image();
+    img.onload = function(){
+      var max = 900;
+      var w = img.width, h = img.height;
+      if(w > h && w > max){ h = Math.round(h * max / w); w = max; }
+      else if(h >= w && h > max){ w = Math.round(w * max / h); h = max; }
+      var c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      var data = c.toDataURL('image/jpeg', 0.72);
+      var cap = prompt('A few words about what the photograph shows (optional):') || '';
+      api('/api/member/proof',{method:'POST',body:JSON.stringify({taskId:pendingTaskId,image:data,caption:cap})})
+        .then(function(res){
+          if(res.ok){ loadTasks(); }
+          else { alert(res.d.error || 'Could not send the photograph.'); }
+          pendingTaskId = null;
+        });
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
 }
 function toggleTask(id){
   var wasDone = doneToday.indexOf(String(id)) !== -1;
