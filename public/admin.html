@@ -78,6 +78,29 @@ footer p{font-size:.8rem;color:var(--muted)}
 .btn-sm.danger:hover{background:rgba(201,74,74,.1)}
 .btn-sm.ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
 .btn-sm.ghost:hover{color:var(--text);border-color:var(--gold)}
+.tabs{display:flex;gap:.5rem;flex-wrap:wrap;margin:0 0 2rem;border-bottom:1px solid var(--border);padding-bottom:1rem}
+.tab{background:none;border:1px solid var(--border);color:var(--muted);padding:.65rem 1.3rem;border-radius:2px;font-size:.78rem;text-transform:uppercase;letter-spacing:1px;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:.55rem;transition:all .25s}
+.tab:hover{color:var(--text);border-color:var(--gold)}
+.tab.active{background:var(--gold);color:#000;border-color:var(--gold);font-weight:600}
+.tab .count{background:rgba(201,74,74,.9);color:#fff;font-size:.68rem;border-radius:10px;padding:.05rem .45rem;font-weight:700;line-height:1.5}
+.tab .count.zero{display:none}
+.tab.active .count{background:#000;color:var(--gold)}
+.tabpane{display:none}
+.tabpane.active{display:block}
+.ev-btn{background:rgba(201,74,74,.12);border:1px solid rgba(201,74,74,.4);color:#e58a8a;padding:.55rem 1rem;border-radius:2px;font-size:.75rem;font-weight:600;letter-spacing:.5px;cursor:pointer;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:.5rem;transition:all .25s}
+.ev-btn:hover{background:rgba(201,74,74,.22);color:#fff}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;z-index:200;padding:1.5rem;overflow:auto}
+.modal.open{display:block}
+.modal-box{max-width:880px;margin:0 auto;background:var(--bg2);border:1px solid var(--border);padding:1.8rem}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.4rem;gap:1rem;flex-wrap:wrap}
+.modal-head h2{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:1.6rem;color:var(--gold)}
+.proof-card{background:var(--card);border:1px solid var(--border);padding:1.2rem;margin-bottom:1.1rem}
+.proof-card img{width:100%;max-width:540px;border-radius:4px;display:block;margin-bottom:.8rem;border:1px solid var(--border);min-height:70px;background:rgba(0,0,0,.3)}
+.proof-card .p-title{color:var(--text);font-weight:600;margin-bottom:.2rem}
+.proof-card .p-cap{font-size:.9rem;color:var(--muted);font-style:italic;margin:.5rem 0 .8rem}
+.ev-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:1rem}
+.ev-cards .user-card{margin-bottom:0}
+.helper{color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;max-width:640px}
 </style>
 </head>
 <body>
@@ -100,46 +123,72 @@ footer p{font-size:.8rem;color:var(--muted)}
   <div class="admin-header">
     <h1>Admin <span class="gold">Panel</span></h1>
     <div class="stats">
-      <div class="stat"><strong id="statPending">0</strong> Pending</div>
-      <div class="stat"><strong id="statApproved">0</strong> Approved</div>
-      <div class="stat"><strong id="statRejected">0</strong> Rejected</div>
-      <div class="stat"><strong id="statTotal">0</strong> Total</div>
+      <div class="stat"><strong id="statPending">0</strong> To approve</div>
+      <div class="stat"><strong id="statEvidence">0</strong> Evidence waiting</div>
+      <div class="stat"><strong id="statApproved">0</strong> Members</div>
     </div>
   </div>
 
-  <div class="filter-bar">
-    <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
-    <button class="filter-btn" data-filter="pending" onclick="setFilter('pending')">Pending</button>
-    <button class="filter-btn" data-filter="approved" onclick="setFilter('approved')">Approved</button>
-    <button class="filter-btn" data-filter="rejected" onclick="setFilter('rejected')">Rejected</button>
+  <div class="tabs">
+    <button class="tab active" data-tab="members" onclick="switchTab('members')">Members <span class="count zero" id="tabMembersCount">0</span></button>
+    <button class="tab" data-tab="evidence" onclick="switchTab('evidence')">Evidence <span class="count zero" id="tabEvidenceCount">0</span></button>
+    <button class="tab" data-tab="tasks" onclick="switchTab('tasks')">Tasks</button>
+    <button class="tab" data-tab="circles" onclick="switchTab('circles')">Circles</button>
   </div>
 
-  <div id="userList"></div>
-
-  <div class="section-title">Manage <span style="color:var(--gold)">Tasks</span></div>
-  <div class="card task-form">
-    <div class="card-label">Add New Task</div>
-    <input id="taskTitle" placeholder="Task title (e.g. 'Fast for 24 hours')">
-    <textarea id="taskDesc" placeholder="Description — what the member must do to complete it"></textarea>
-    <div class="task-form-row">
-      <input id="taskXp" type="number" value="10" placeholder="XP">
-      <select id="taskCategory">
-        <option value="daily">Daily</option>
-        <option value="weekly">Weekly</option>
-        <option value="special">Special</option>
-      </select>
-      <button class="btn" onclick="addTask()">+ Add Task</button>
+  <!-- MEMBERS -->
+  <div id="pane-members" class="tabpane active">
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+      <button class="filter-btn" data-filter="pending" onclick="setFilter('pending')">To approve</button>
+      <button class="filter-btn" data-filter="approved" onclick="setFilter('approved')">Approved</button>
+      <button class="filter-btn" data-filter="rejected" onclick="setFilter('rejected')">Rejected</button>
     </div>
+    <div id="userList"></div>
   </div>
-  <div id="taskList"></div>
 
-  <div class="section-title">Evidence <span style="color:var(--gold)">Awaiting Review</span></div>
-  <p style="color:var(--muted);font-size:.9rem;margin-bottom:1rem">Outward practices are credited only once a photograph is accepted. Guides (rank 4+) and admins review them.</p>
-  <div id="proofList"></div>
+  <!-- EVIDENCE, grouped per member -->
+  <div id="pane-evidence" class="tabpane">
+    <p class="helper">Each member's photographs are grouped together. Open a member to accept or decline their practices — nothing is credited until you do.</p>
+    <div id="evidenceList" class="ev-cards"></div>
+  </div>
 
-  <div class="section-title">Manage <span style="color:var(--gold)">Circles</span></div>
-  <p style="color:var(--muted);font-size:.9rem;margin-bottom:1rem">Circles are led by Stewards (rank 5). Each remits 25% of what it receives for teaching and service; the Steward keeps 75%.</p>
-  <div id="circleList"></div>
+  <!-- TASKS -->
+  <div id="pane-tasks" class="tabpane">
+    <p class="helper">The daily practices every member sees. The ladder of outward practices (with photographs) is below with the rest.</p>
+    <div class="card task-form">
+      <div class="card-label">Add New Task</div>
+      <input id="taskTitle" placeholder="Task title (e.g. 'Fast for 24 hours')">
+      <textarea id="taskDesc" placeholder="Description — what the member must do to complete it"></textarea>
+      <div class="task-form-row">
+        <input id="taskXp" type="number" value="10" placeholder="XP">
+        <select id="taskCategory">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="special">Special</option>
+        </select>
+        <button class="btn" onclick="addTask()">+ Add Task</button>
+      </div>
+    </div>
+    <div id="taskList"></div>
+  </div>
+
+  <!-- CIRCLES -->
+  <div id="pane-circles" class="tabpane">
+    <p class="helper">Circles are led by Stewards (rank 5). Each remits 25% of what it receives for teaching and service; the Steward keeps 75%.</p>
+    <div id="circleList"></div>
+  </div>
+</div>
+
+<!-- EVIDENCE MODAL — one member at a time -->
+<div class="modal" id="proofModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2 id="proofModalTitle">Evidence</h2>
+      <button class="btn btn-view" onclick="closeProofModal()">Close ✕</button>
+    </div>
+    <div id="proofModalBody"></div>
+  </div>
 </div>
 
 <footer>
@@ -157,29 +206,85 @@ function api(path,opts){
     .then(r=>r.json().then(d=>({ok:r.ok,d})));
 }
 
+var evidenceByUser={};
+var modalUserId=null;
+
 function init(){
   var token=getToken();
   if(!token){document.getElementById('noMemberState').style.display='block';document.getElementById('adminMain').style.display='none';return;}
   document.getElementById('noMemberState').style.display='none';
   document.getElementById('adminMain').style.display='block';
-  loadUsers();
-  loadTasks();
-  loadCircles();
-  loadProofs();
+  loadAll();
+}
+function loadAll(){ loadEvidence(); loadUsers(); loadTasks(); loadCircles(); }
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.toggle('active',b.dataset.tab===name);});
+  document.querySelectorAll('.tabpane').forEach(function(p){p.classList.remove('active');});
+  var pane=document.getElementById('pane-'+name);
+  if(pane) pane.classList.add('active');
+  if(name==='evidence') loadEvidence();
 }
 
-function loadProofs(){
+// ---- Evidence, grouped per member ----
+function loadEvidence(){
   api('/api/admin/proofs?status=pending').then(function(res){
-    var box=document.getElementById('proofList');
+    var box=document.getElementById('evidenceList');
     if(!res.ok){ box.innerHTML='<p style="color:var(--muted)">Could not load evidence.</p>'; return; }
     var ps=res.d.proofs||[];
-    if(!ps.length){ box.innerHTML='<p style="color:var(--muted);font-size:.9rem">Nothing waiting. The path is clear.</p>'; return; }
-    box.innerHTML=ps.map(function(p){
-      return '<div class="card" style="margin-bottom:.9rem">'+
-        '<div class="card-label">'+p.task_title+'</div>'+
-        '<p style="color:var(--muted);font-size:.88rem;margin-bottom:.5rem">'+p.member_name+' ('+p.member_email+') · rank '+p.member_rank+' · submitted '+new Date(p.created_at).toLocaleString('en-GB')+'</p>'+
-        (p.caption?'<p style="font-size:.9rem;margin-bottom:.6rem">“'+p.caption+'”</p>':'')+
-        '<img id="pi_'+p.id+'" alt="evidence" style="max-width:320px;width:100%;border-radius:8px;border:1px solid var(--border);display:block;margin-bottom:.7rem">'+
+    evidenceByUser={};
+    ps.forEach(function(p){ evidenceByUser[p.user_id]=(evidenceByUser[p.user_id]||0)+1; });
+    var badge=document.getElementById('tabEvidenceCount');
+    badge.textContent=ps.length;
+    badge.classList.toggle('zero', ps.length===0);
+    document.getElementById('statEvidence').textContent=ps.length;
+    if(!ps.length){
+      box.innerHTML='<div class="empty" style="grid-column:1/-1"><h3>✦ Nothing waiting</h3><p>The path is clear.</p></div>';
+      renderUsers(); return;
+    }
+    var groups={};
+    ps.forEach(function(p){
+      if(!groups[p.user_id]) groups[p.user_id]={name:p.member_name,email:p.member_email,rank:p.member_rank,items:[]};
+      groups[p.user_id].items.push(p);
+    });
+    box.innerHTML=Object.keys(groups).map(function(uid){
+      var g=groups[uid];
+      return '<div class="user-card" style="border-left:3px solid var(--orange)">'+
+        '<div class="user-name">'+g.name+'</div>'+
+        '<div class="user-email">'+g.email+'</div>'+
+        '<p style="color:var(--muted);font-size:.85rem;margin:.7rem 0">'+g.items.length+' photograph'+(g.items.length>1?'s':'')+' waiting</p>'+
+        '<button class="ev-btn" onclick="openEvidence('+uid+')">Review evidence →</button>'+
+        '</div>';
+    }).join('');
+    renderUsers();
+  });
+}
+
+function openEvidence(userId){
+  modalUserId=userId;
+  document.getElementById('proofModal').classList.add('open');
+  document.getElementById('proofModalBody').innerHTML='<p style="color:var(--muted)">Loading…</p>';
+  loadModalProofs();
+}
+
+function loadModalProofs(){
+  var id=modalUserId;
+  api('/api/admin/proofs?status=pending&userId='+id).then(function(res){
+    var body=document.getElementById('proofModalBody');
+    if(!res.ok){ body.innerHTML='<p style="color:var(--muted)">Could not load.</p>'; return; }
+    var ps=res.d.proofs||[];
+    if(!ps.length){
+      body.innerHTML='<p style="color:var(--muted)">Nothing waiting for this member.</p>';
+      document.getElementById('proofModalTitle').textContent='Evidence';
+      return;
+    }
+    document.getElementById('proofModalTitle').textContent=ps[0].member_name+' — '+ps.length+' awaiting';
+    body.innerHTML=ps.map(function(p){
+      return '<div class="proof-card">'+
+        '<div class="p-title">'+p.task_title+'</div>'+
+        '<div style="color:var(--muted);font-size:.8rem">submitted '+new Date(p.created_at).toLocaleString('en-GB')+' · '+p.date+'</div>'+
+        '<img id="pi_'+p.id+'" alt="evidence">'+
+        (p.caption?'<div class="p-cap">“'+p.caption+'”</div>':'')+
         '<div style="display:flex;gap:.5rem;flex-wrap:wrap">'+
           '<button class="btn btn-approve" onclick="reviewProof('+p.id+',\'approve\')">✓ Accept</button>'+
           '<button class="btn btn-reject" onclick="reviewProof('+p.id+',\'reject\')">✕ Decline</button>'+
@@ -188,6 +293,7 @@ function loadProofs(){
     ps.forEach(function(p){ loadProofImage(p.id); });
   });
 }
+
 function loadProofImage(id){
   fetch('/api/proofs/'+id+'/image',{headers:{'Authorization':'Bearer '+getToken()}})
     .then(function(r){ return r.ok ? r.blob() : null; })
@@ -196,11 +302,26 @@ function loadProofImage(id){
       if(b && el){ el.src=URL.createObjectURL(b); }
     }).catch(function(){});
 }
+
 function reviewProof(id, action){
   var note='';
-  if(action==='reject'){ note=prompt('Why is it declined? (shown to the member)')||''; if(note===null) return; }
+  if(action==='reject'){
+    var answer=prompt('Why is it declined? (shown to the member)');
+    if(answer===null) return;
+    note=answer;
+  }
   api('/api/admin/proofs/'+id+'/review',{method:'POST',body:JSON.stringify({action:action,note:note})})
-    .then(function(res){ if(res.ok){ loadProofs(); loadUsers(); } else { alert(res.d.error||'Could not review.'); } });
+    .then(function(res){
+      if(!res.ok){ alert(res.d.error||'Could not review.'); return; }
+      loadEvidence();
+      loadUsers();
+      if(modalUserId) loadModalProofs();
+    });
+}
+
+function closeProofModal(){
+  document.getElementById('proofModal').classList.remove('open');
+  modalUserId=null;
 }
 
 function loadUsers(){
@@ -219,11 +340,11 @@ function loadUsers(){
 function renderStats(){
   var pending=allUsers.filter(u=>u.status==='pending').length;
   var approved=allUsers.filter(u=>u.status==='approved').length;
-  var rejected=allUsers.filter(u=>u.status==='rejected').length;
   document.getElementById('statPending').textContent=pending;
   document.getElementById('statApproved').textContent=approved;
-  document.getElementById('statRejected').textContent=rejected;
-  document.getElementById('statTotal').textContent=allUsers.length;
+  var badge=document.getElementById('tabMembersCount');
+  badge.textContent=pending;
+  badge.classList.toggle('zero',pending===0);
 }
 
 function setFilter(f){
@@ -241,8 +362,9 @@ function renderUsers(){
   }
   var html='';
   filtered.forEach(function(u){
-    var rankIcon=['🌱','🌿','🔥','⭐','✦'][u.rank]||'🌱';
-    var rankName=['Seeker','Initiate','Disciple','Elder','Guide'][u.rank]||'Seeker';
+    var rankIcon=['🌱','🌿','🔥','⭐','✦','🪷'][u.rank]||'🌱';
+    var rankName=['Seeker','Initiate','Disciple','Elder','Guide','Steward'][u.rank]||'Seeker';
+    var evCount=evidenceByUser[u.id]||0;
     html+='<div class="user-card '+u.status+'">'+
       '<div class="user-top">'+
         '<div><div class="user-name">'+u.name+'</div><div class="user-email">'+u.email+'</div></div>'+
@@ -259,6 +381,7 @@ function renderUsers(){
       '</div>'+
       (u.message?'<div class="user-message">"'+u.message+'"</div>':'')+
       '<div class="user-actions">'+
+        (evCount?'<button class="ev-btn" onclick="openEvidence('+u.id+')">📷 '+evCount+' evidence waiting →</button>':'')+
         (u.status!=='approved'?'<button class="btn btn-approve" onclick="approve('+u.id+')">✓ Approve</button>':'')+
         (u.status!=='rejected'?'<button class="btn btn-reject" onclick="reject('+u.id+')">✕ Reject</button>':'')+
         '<div style="display:flex;gap:.5rem;align-items:center;margin-left:auto"><span style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Rank</span><select class="rank-select" onchange="setRank('+u.id+',this.value)">'+rankSelectOptions(u.rank)+'</select></div>'+
@@ -283,9 +406,9 @@ function reject(id){
 }
 
 function rankSelectOptions(current){
-  var names=['🌱 Seeker','🌿 Initiate','🔥 Disciple','⭐ Elder','✦ Guide'];
+  var names=['🌱 Seeker','🌿 Initiate','🔥 Disciple','⭐ Elder','✦ Guide','🪷 Steward'];
   var h='';
-  for(var r=0;r<5;r++){h+='<option value="'+r+'"'+(r===current?' selected':'')+'>'+names[r]+'</option>';}
+  for(var r=0;r<6;r++){h+='<option value="'+r+'"'+(r===current?' selected':'')+'>'+names[r]+'</option>';}
   return h;
 }
 function setRank(userId,rank){
@@ -351,6 +474,8 @@ function deleteTask(id){
 }
 
 document.addEventListener('DOMContentLoaded',init);
+document.addEventListener('keydown',function(e){ if(e.key==='Escape' && document.getElementById('proofModal').classList.contains('open')) closeProofModal(); });
+document.getElementById('proofModal').addEventListener('click',function(e){ if(e.target===this) closeProofModal(); });
 
 function logout(){
   api('/api/logout',{method:'POST'}).finally(function(){

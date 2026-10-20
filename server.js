@@ -560,11 +560,13 @@ async function requireValidator(req, res, next) {
 app.get('/api/admin/proofs', requireAuth, requireValidator, async (req, res) => {
   try {
     const status = ['pending', 'approved', 'rejected'].includes(req.query.status) ? req.query.status : 'pending';
+    const userId = req.query.userId ? parseInt(req.query.userId, 10) : null;
     const rows = (await pool.query(
-      `SELECT p.id, p.task_id, p.date, p.caption, p.status, p.created_at,
+      `SELECT p.id, p.user_id, p.task_id, p.date, p.caption, p.status, p.created_at,
               t.title AS task_title, u.name AS member_name, u.email AS member_email, u.rank AS member_rank
        FROM proofs p JOIN tasks t ON t.id=p.task_id JOIN users u ON u.id=p.user_id
-       WHERE p.status=$1 ORDER BY p.created_at ASC LIMIT 60`, [status])).rows;
+       WHERE p.status=$1 AND ($2::int IS NULL OR p.user_id=$2)
+       ORDER BY p.created_at ASC LIMIT 100`, [status, userId])).rows;
     res.json({ proofs: rows });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
