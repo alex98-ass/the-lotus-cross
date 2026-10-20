@@ -231,6 +231,21 @@ a{color:var(--gold-deep);text-decoration:none}
   #lightbox img{max-width:96vw}
 }
 
+.sidebar .policy-link{display:block;text-align:center;font-size:.7rem;letter-spacing:.6px;color:var(--muted);text-decoration:none;opacity:.75;padding:.6rem 0 0;transition:opacity .2s,color .2s}
+.sidebar .policy-link:hover{opacity:1;color:var(--gold-deep)}
+#barHint{display:none}
+@media(max-width:600px){
+  #barHint{position:fixed;bottom:82px;left:50%;transform:translateX(-50%) translateY(10px);display:flex;align-items:center;gap:.45rem;
+    background:rgba(22,20,17,.94);color:#f4ece0;font-size:.74rem;font-weight:500;letter-spacing:.2px;
+    padding:.55rem 1rem;border-radius:999px;box-shadow:0 10px 26px rgba(0,0,0,.28);
+    z-index:210;pointer-events:none;white-space:nowrap;opacity:0;
+    transition:opacity .45s ease,transform .45s cubic-bezier(.2,.7,.2,1)}
+  #barHint.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #barHint .arrow{animation:hintNudge 1.3s ease-in-out infinite;color:#e8c876}
+  .sidebar .policy-link{display:none}
+}
+@keyframes hintNudge{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.01ms!important;transition-duration:.01ms!important}
   .quote-card:hover,.stat-card:hover,.task-card:hover{transform:none}
@@ -273,7 +288,10 @@ a{color:var(--gold-deep);text-decoration:none}
       <button class="side-btn" id="unlockBtn" onclick="openPlans()"><span class="ico">✦</span><span class="txt">Unlock more</span></button>
       <div class="spacer"></div>
       <button class="logout" id="logoutBtn" title="Sign out" aria-label="Sign out"><span class="ico">⎋</span><span class="txt">Sign out</span></button>
+      <a href="policies.html" class="policy-link">Policies</a>
     </aside>
+
+    <div id="barHint" aria-hidden="true"><span>Swipe the menu for more</span><span class="arrow">→</span></div>
 
     <main class="main">
       <!-- DASHBOARD -->
@@ -1027,11 +1045,29 @@ function sendMsg(){
 function startChatPolling(){ stopChatPolling(); chatPollTimer = setInterval(loadChannel,4000); }
 function stopChatPolling(){ if(chatPollTimer){ clearInterval(chatPollTimer); chatPollTimer=null; } }
 
+function maybeBarHint(){
+  try{
+    if(window.innerWidth > 600) return;
+    if(localStorage.getItem('lotus_bar_hint')) return;
+    var bar = document.querySelector('.sidebar');
+    var hint = document.getElementById('barHint');
+    if(!bar || !hint) return;
+    if(bar.scrollWidth <= bar.clientWidth + 12) return;
+    hint.classList.add('show');
+    localStorage.setItem('lotus_bar_hint', '1');
+    var hide = function(){ hint.classList.remove('show'); };
+    setTimeout(hide, 7000);
+    bar.addEventListener('scroll', hide, {once:true, passive:true});
+    bar.addEventListener('touchstart', hide, {once:true, passive:true});
+  }catch(e){}
+}
+
 // ===== INIT =====
 function enterPortal(){
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('portalScreen').style.display = 'block';
   switchTab('dashboard');
+  setTimeout(maybeBarHint, 1200);
 }
 (function init(){
   if(token){ enterPortal(); }
@@ -1072,6 +1108,7 @@ if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ 
         </ul>
       </div>
     </div>
+    <p style="font-size:.8rem;color:var(--muted)">Refunds, membership terms and conduct: <a href="policies.html" style="color:var(--gold-deep)">Policies</a>.</p>
     <p style="font-size:.8rem;color:var(--muted);margin-top:1rem">Nothing essential is behind these. The reflection, the practices, the community and the forty days stay free for as long as this exists.</p>
     <p style="margin-top:1rem"><a href="index.html#membership" style="display:inline-block;background:var(--ink);color:#fff;padding:.75rem 1.4rem;border-radius:999px;text-decoration:none;font-size:.85rem;font-weight:600">See the plans →</a></p>
   </div>
