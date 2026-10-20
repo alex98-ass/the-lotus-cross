@@ -223,16 +223,23 @@ a{color:var(--gold-deep);text-decoration:none}
       <a href="shop.html" class="side-btn" style="text-decoration:none"><span class="ico">🛍️</span><span class="txt">Shop</span></a>
       <button class="side-btn" id="unlockBtn" onclick="openPlans()"><span class="ico">✦</span><span class="txt">Unlock more</span></button>
       <div class="spacer"></div>
-      <button class="logout" id="logoutBtn"><span class="ico">⎋</span><span class="txt">Sign Out</span></button>
+      <button class="logout" id="logoutBtn" title="Sign out" aria-label="Sign out"><span class="ico">⎋</span><span class="txt">Sign out</span></button>
     </aside>
 
     <main class="main">
       <!-- DASHBOARD -->
       <section id="view-dashboard" class="view active">
-        <div class="dash-greet">Peace, <em id="dashName">traveller</em>.</div>
-        <p class="dash-sub">Continue your journey. Every step matters.</p>
-        <div class="quote-card" id="challengeCard" style="display:none;margin-bottom:1.5rem"></div>
-        <div class="quote-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+          <div>
+            <div class="dash-greet">Peace, <em id="dashName">traveller</em>.</div>
+            <p class="dash-sub" id="dashMeta" style="margin-bottom:0"></p>
+          </div>
+          <button onclick="logout()" title="Sign out" style="background:none;border:1px solid var(--line);border-radius:999px;padding:.5rem 1rem;font-size:.78rem;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap">Sign out</button>
+        </div>
+
+        <div class="quote-card" id="challengeCard" style="display:none;margin:1.6rem 0 0"></div>
+
+        <div class="quote-card" style="margin-top:1.6rem">
           <div class="q-label" id="reflTitle">Reflection of the Day</div>
           <blockquote id="dashQuote">Seek peace within, and you will find it everywhere.</blockquote>
           <p id="reflPractice" style="font-size:.9rem;color:var(--muted);margin:.9rem 0 0;font-style:italic"></p>
@@ -242,17 +249,15 @@ a{color:var(--gold-deep);text-decoration:none}
           </div>
           <cite id="dashQuoteSrc">— The Wisdom of the Three Paths</cite>
         </div>
-        <p class="dash-sub" id="inviteLine" style="margin-top:-.5rem"></p>
-        <div class="stats-grid">
-          <div class="stat-card"><div class="stat-ico">🔮</div><div class="stat-val" id="dashRank">Seeker</div><div class="stat-lbl">Current Rank</div></div>
-          <div class="stat-card"><div class="stat-ico">⚡</div><div class="stat-val" id="dashXp">0</div><div class="stat-lbl">XP</div></div>
-          <div class="stat-card"><div class="stat-ico">🔥</div><div class="stat-val" id="dashStreak">0</div><div class="stat-lbl">Day Streak</div></div>
+
+        <div class="cta-row" style="margin-top:1.4rem">
+          <a href="#" class="cta-btn" onclick="switchTab('tasks');return false">Start today's practice →</a>
         </div>
-        <div class="cta-row"><a href="#" class="cta-btn" onclick="switchTab('tasks');return false">Start today's tasks →</a></div>
-        <div class="quote-card" style="margin-top:2rem">
-          <div class="q-label">On the path this week</div>
-          <div id="leaderboard" style="margin-top:.6rem"><span style="color:var(--muted);font-size:.9rem">Loading…</span></div>
-        </div>
+
+        <details style="margin-top:1.6rem">
+          <summary style="cursor:pointer;font-size:.82rem;color:var(--muted);list-style:none">Invite someone →</summary>
+          <p id="inviteLine" style="margin-top:.6rem;font-size:.84rem;color:var(--muted)"></p>
+        </details>
       </section>
 
       <!-- DAILY TASKS -->
@@ -268,6 +273,8 @@ a{color:var(--gold-deep);text-decoration:none}
       <section id="view-community" class="view">
         <div class="comm-layout">
           <div class="comm-side">
+            <div class="comm-label">Top of the path</div>
+            <div id="leaderboard" style="margin:.2rem 0 1.2rem;font-size:.8rem"><span style="color:var(--muted)">…</span></div>
             <div class="comm-label">Channels</div>
             <button class="channel-btn active" data-channel="general" onclick="openChannel('general')"># general</button>
             <button class="channel-btn" data-channel="meditation" onclick="openChannel('meditation')"># meditation</button>
@@ -460,7 +467,7 @@ function switchTab(tab){
   document.getElementById('view-' + tab).classList.add('active');
   if(tab === 'dashboard') loadDashboard();
   if(tab === 'tasks') loadTasks();
-  if(tab === 'community'){ loadChannel(); startChatPolling(); }
+  if(tab === 'community'){ loadChannel(); startChatPolling(); renderLeaderboard((window.__me||'')); }
   else stopChatPolling();
   if(tab === 'circle') loadCircle();
   if(tab === 'forty') loadForty();
@@ -663,11 +670,13 @@ function loadDashboard(){
     var u = res.d.user;
     localXp = u.xp || 0;
     streak = u.streak || 0;
-    var rank = res.d.ranks[u.rank] || {name:'Seeker'};
+    var rank = res.d.ranks[u.rank] || {name:'Seeker', icon:''};
+    window.__me = u.name || '';
     document.getElementById('dashName').textContent = u.name || 'traveller';
-    document.getElementById('dashRank').textContent = rank.name;
-    document.getElementById('dashXp').textContent = localXp;
-    document.getElementById('dashStreak').textContent = streak;
+    document.getElementById('dashMeta').textContent =
+      (rank.icon ? rank.icon + ' ' : '') + rank.name +
+      ' · ' + (u.tasks_completed || 0) + ' practices' +
+      ' · ' + (streak || 0) + '-day streak';
     var r = res.d.reflection;
     if(r){
       document.getElementById('reflTitle').textContent = r.title || 'Reflection of the Day';
@@ -679,7 +688,6 @@ function loadDashboard(){
       document.getElementById('dashQuote').textContent = QUOTES[day].text;
       document.getElementById('dashQuoteSrc').textContent = QUOTES[day].src;
     }
-    renderLeaderboard(u.name);
     renderChallenge(res.d.challenge);
     applyPlan(res.d.features);
     var b = res.d.brought || {total:0, approved:0};
@@ -790,19 +798,17 @@ function renderLeaderboard(myName){
   fetch('/api/leaderboard').then(function(r){ return r.json(); }).then(function(d){
     var box = document.getElementById('leaderboard');
     if(!box) return;
-    var rows = d.leaderboard || [];
-    if(!rows.length){ box.innerHTML = '<span style="color:var(--muted);font-size:.9rem">The path is empty. Be the first to walk it.</span>'; return; }
+    var rows = (d.leaderboard || []).slice(0, 5);
+    if(!rows.length){ box.innerHTML = '<span style="color:var(--muted)">Nobody yet.</span>'; return; }
     var icons = ['🌱','🌿','🔥','⭐','✦','🪷'];
     box.innerHTML = rows.map(function(p){
-      var medal = p.pos===1?'🥇':p.pos===2?'🥈':p.pos===3?'🥉':(p.pos+'.');
       var me = myName && p.name.split(' ')[0].toLowerCase() === myName.split(' ')[0].toLowerCase();
-      return '<div style="display:flex;align-items:center;gap:.7rem;padding:.45rem 0;border-bottom:1px solid var(--line);font-size:.92rem'+(me?';font-weight:600':'')+'">'+
-        '<span style="width:2rem;color:var(--gold-deep)">'+medal+'</span>'+
-        '<span style="flex:1">'+p.name+'</span>'+
-        '<span style="color:var(--muted);font-size:.82rem">'+icons[p.rank||0]+' · '+p.tasks_completed+' practices</span>'+
-        '<span style="color:var(--gold-deep);font-weight:600;min-width:3.5rem;text-align:right">'+(p.streak||0)+'d 🔥</span>'+
+      return '<div style="display:flex;gap:.5rem;align-items:baseline;padding:.28rem 0' + (me ? ';font-weight:600' : '') + '">' +
+        '<span style="color:var(--gold-deep);width:1.1rem">' + p.pos + '</span>' +
+        '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + p.name + '</span>' +
+        '<span style="color:var(--muted);font-size:.74rem">' + (p.streak || 0) + 'd</span>' +
       '</div>';
-    }).join('') + '<div style="margin-top:.8rem;font-size:.82rem;color:var(--muted)">'+d.total+' walking together. Order is by practices completed, then streak.</div>';
+    }).join('') + '<div style="color:var(--muted);font-size:.72rem;margin-top:.4rem">' + d.total + ' walking</div>';
   }).catch(function(){});
 }
 
