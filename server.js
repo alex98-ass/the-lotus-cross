@@ -1094,7 +1094,7 @@ app.post('/api/admin/proofs/:id/review', requireAuth, requireValidator, async (r
 
 // ===== ADMIN =====
 app.get('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
-  const users = (await pool.query("SELECT id, name, email, country, age, tradition, message, role, status, rank, tasks_completed, streak, enrolled_at, approved_at, COALESCE(is_demo,false) AS is_demo, (password_hash IS NOT NULL) AS has_password, COALESCE(tier,'free') AS tier FROM users ORDER BY enrolled_at DESC")).rows;
+  const users = (await pool.query("SELECT id, name, email, country, age, tradition, message, role, status, rank, tasks_completed, streak, enrolled_at, approved_at, COALESCE(is_demo,false) AS is_demo, (password_hash IS NOT NULL) AS has_password, COALESCE(tier,'free') AS tier, COALESCE(tier_lifetime,false) AS tier_lifetime FROM users ORDER BY enrolled_at DESC")).rows;
   res.json({ users });
 });
 
