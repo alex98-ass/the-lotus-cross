@@ -132,6 +132,7 @@ async function initDb() {
     )`);
   await pool.query("CREATE INDEX IF NOT EXISTS proofs_status_idx ON proofs(status)");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_optin BOOLEAN DEFAULT true");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS challenge_started_at TEXT");
   await pool.query(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`);
   await pool.query("INSERT INTO settings (key,value) VALUES ('last_daily_send','') ON CONFLICT (key) DO NOTHING");
   await pool.query(`
@@ -193,15 +194,11 @@ async function initDb() {
     }
     console.log('  Ladder of practices seeded (' + PRACTICES.length + ').');
   }
-  // Seed daily reflections (30, rotating by calendar day)
-  const rc = await pool.query("SELECT COUNT(*)::int AS c FROM reflections");
-  if (rc.rows[0].c === 0) {
-    for (let i = 0; i < REFLECTIONS.length; i++) {
-      const r = REFLECTIONS[i];
-      await pool.query("INSERT INTO reflections (day_index, title, body, practice, source) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (day_index) DO NOTHING",
-        [i, r.title, r.body, r.practice, r.source]);
-    }
-    console.log('  Daily reflections seeded (' + REFLECTIONS.length + ').');
+  // Seed/refresh daily reflections — upsert so new entries extend the cycle
+  for (let i = 0; i < REFLECTIONS.length; i++) {
+    const r = REFLECTIONS[i];
+    await pool.query("INSERT INTO reflections (day_index, title, body, practice, source) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (day_index) DO NOTHING",
+      [i, r.title, r.body, r.practice, r.source]);
   }
 }
 
@@ -397,6 +394,7 @@ app.get('/api/member/dashboard', requireAuth, async (req, res) => {
     "SELECT task_id, status, id FROM proofs WHERE user_id=$1 AND date=$2 ORDER BY created_at DESC", [u.id, today])).rows;
   const reflection = await reflectionForToday();
   const circle = (await pool.query("SELECT * FROM circles WHERE steward_id=$1", [u.id])).rows[0] || null;
+  const challenge = await challengeState(u);
   const brought = (await pool.query(
     "SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status='approved')::int AS approved FROM users WHERE referred_by=$1", [u.id])).rows[0];
   res.json({
@@ -404,7 +402,7 @@ app.get('/api/member/dashboard', requireAuth, async (req, res) => {
       rank: u.rank, xp: u.xp, tasks_completed: u.tasks_completed, streak: u.streak, enrolled_at: u.enrolled_at,
       referral_code: u.referral_code },
     ranks: RANKS, tasks: tasks, doneToday: done.rows.map(r => r.task_id), today,
-    proofsToday: proofsToday, reflection: reflection, circle: circle, brought: brought
+    proofsToday: proofsToday, reflection: reflection, circle: circle, brought: brought, challenge: challenge
   });
 });
 
@@ -625,6 +623,40 @@ app.post('/api/member/task', requireAuth, async (req, res) => {
         `<h2>✦ Congratulations, ${updated.name}!</h2><p>You have advanced to the rank of <strong>${RANKS[newRank].name}</strong> ${RANKS[newRank].icon}.</p><p>Continue walking.</p>`);
     }
     res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== THE FORTY DAYS — a shared challenge, the way the big apps hold people =====
+const CHALLENGE_DAYS = 40;
+async function challengeState(u) {
+  const start = u.challenge_started_at;
+  if (!start) return { started: false, days: CHALLENGE_DAYS, daysDone: 0, percent: 0, dayNumber: 0 };
+  const done = (await pool.query(
+    "SELECT COUNT(DISTINCT date)::int AS c FROM tasks_done WHERE user_id=$1 AND date >= $2", [u.id, start])).rows[0].c;
+  const elapsed = Math.max(1, Math.round((new Date(todayKey()) - new Date(start)) / 86400000) + 1);
+  return {
+    started: true, start: start, days: CHALLENGE_DAYS,
+    daysDone: Math.min(done, CHALLENGE_DAYS),
+    dayNumber: Math.min(elapsed, CHALLENGE_DAYS),
+    percent: Math.min(100, Math.round(done / CHALLENGE_DAYS * 100)),
+    complete: done >= CHALLENGE_DAYS
+  };
+}
+
+app.get('/api/member/challenge', requireAuth, async (req, res) => {
+  try { res.json(await challengeState(req.user)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/member/challenge/start', requireAuth, async (req, res) => {
+  try {
+    if (req.user.challenge_started_at) return res.status(409).json({ error: 'You have already begun the forty days' });
+    const start = todayKey();
+    await pool.query("UPDATE users SET challenge_started_at=$1 WHERE id=$2", [start, req.user.id]);
+    sendEmail(req.user.email, 'Your forty days begin today',
+      `<h2>✦ Forty days</h2><p>One practice a day, for forty days. Not to earn anything — to see what happens to a person who keeps showing up.</p>
+       <p><a href="${process.env.PUBLIC_URL || 'https://the-lotus-cross.onrender.com'}/portal.html">Begin day one →</a></p>`);
+    res.json({ ok: true, start: start, days: CHALLENGE_DAYS });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

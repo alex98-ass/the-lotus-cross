@@ -218,8 +218,13 @@ a{color:var(--gold-deep);text-decoration:none}
           <div class="q-label" id="reflTitle">Reflection of the Day</div>
           <blockquote id="dashQuote">Seek peace within, and you will find it everywhere.</blockquote>
           <p id="reflPractice" style="font-size:.9rem;color:var(--muted);margin:.9rem 0 0;font-style:italic"></p>
+          <div style="display:flex;gap:.6rem;align-items:center;margin-top:1rem;flex-wrap:wrap">
+            <button id="listenBtn" onclick="toggleListen()" style="background:var(--gold);color:#fff;border:none;border-radius:24px;padding:.5rem 1.1rem;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">▶ Listen</button>
+            <span id="listenNote" style="font-size:.76rem;color:var(--muted)"></span>
+          </div>
           <cite id="dashQuoteSrc">— The Wisdom of the Three Paths</cite>
         </div>
+        <div class="quote-card" id="challengeCard" style="margin-top:1.5rem;display:none"></div>
         <p class="dash-sub" id="inviteLine" style="margin-top:-.5rem"></p>
         <div class="stats-grid">
           <div class="stat-card"><div class="stat-ico">🔮</div><div class="stat-val" id="dashRank">Seeker</div><div class="stat-lbl">Current Rank</div></div>
@@ -518,6 +523,7 @@ function loadDashboard(){
       document.getElementById('dashQuoteSrc').textContent = QUOTES[day].src;
     }
     renderLeaderboard(u.name);
+    renderChallenge(res.d.challenge);
     var b = res.d.brought || {total:0, approved:0};
     var inv = document.getElementById('inviteLine');
     if(u.referral_code){
@@ -526,6 +532,72 @@ function loadDashboard(){
         ' into the community. Your invitation link: <span style="color:var(--gold-deep)">' + link + '</span>' +
         ' <button onclick="copyInvite(\'' + link + '\')" style="margin-left:.4rem;background:transparent;border:1px solid var(--line);border-radius:6px;padding:.15rem .5rem;cursor:pointer;font-size:.78rem;color:var(--muted)">copy</button>';
     }
+  });
+}
+
+// ===== LISTEN (the daily reflection read aloud — no files to host) =====
+var listening = false;
+function currentReflectionText(){
+  var t = document.getElementById('reflTitle').textContent || '';
+  var b = document.getElementById('dashQuote').textContent || '';
+  var p = document.getElementById('reflPractice').textContent || '';
+  return [t + '.', b, p].filter(Boolean).join(' ');
+}
+function pickVoice(){
+  var vs = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+  return vs.filter(function(v){ return /en-GB/i.test(v.lang); })[0]
+      || vs.filter(function(v){ return /^en/i.test(v.lang); })[0] || null;
+}
+function toggleListen(){
+  if(!('speechSynthesis' in window)){
+    document.getElementById('listenNote').textContent = 'Your browser cannot read this aloud.';
+    return;
+  }
+  if(listening){ speechSynthesis.cancel(); listening = false; resetListenBtn(); return; }
+  var u = new SpeechSynthesisUtterance(currentReflectionText());
+  var v = pickVoice(); if(v) u.voice = v;
+  u.lang = v ? v.lang : 'en-GB';
+  u.rate = 0.92; u.pitch = 0.95;
+  u.onend = function(){ listening = false; resetListenBtn(); };
+  u.onerror = function(){ listening = false; resetListenBtn(); };
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+  listening = true;
+  document.getElementById('listenBtn').textContent = '■ Stop';
+  document.getElementById('listenNote').textContent = 'Read aloud — about a minute.';
+}
+function resetListenBtn(){
+  var b = document.getElementById('listenBtn');
+  if(b) b.textContent = '▶ Listen';
+  var n = document.getElementById('listenNote');
+  if(n) n.textContent = '';
+}
+if('speechSynthesis' in window){ speechSynthesis.onvoiceschanged = function(){}; }
+
+// ===== THE FORTY DAYS =====
+function renderChallenge(ch){
+  var card = document.getElementById('challengeCard');
+  if(!card || !ch) return;
+  card.style.display = 'block';
+  if(!ch.started){
+    card.innerHTML =
+      '<div class="q-label">The Forty Days</div>' +
+      '<blockquote>Forty days of one practice. Not a resolution — a test of what happens when you simply do not stop.</blockquote>' +
+      '<p style="color:var(--muted);font-size:.9rem;margin:.7rem 0 1rem">You will get a reflection each morning and one practice to keep. Miss a day and the count of days practised simply does not grow — nothing is punished.</p>' +
+      '<button class="cta-btn" onclick="startChallenge()" style="border:none;cursor:pointer">Begin the forty days →</button>';
+    return;
+  }
+  var pct = ch.percent || 0;
+  card.innerHTML =
+    '<div class="q-label">The Forty Days · day ' + ch.dayNumber + ' of ' + ch.days + '</div>' +
+    '<blockquote>' + (ch.complete ? 'Forty days kept. You are not the person who began.' : 'You have practised on <strong>' + ch.daysDone + '</strong> of ' + ch.days + ' days.') + '</blockquote>' +
+    '<div style="height:10px;background:var(--bg);border-radius:6px;margin:1rem 0 .6rem;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,var(--gold-light),var(--gold))"></div></div>' +
+    '<p style="color:var(--muted);font-size:.85rem;margin:0">' + pct + '% · began ' + ch.start + '</p>';
+}
+function startChallenge(){
+  api('/api/member/challenge/start',{method:'POST',body:'{}'}).then(function(res){
+    if(res.ok){ loadDashboard(); }
+    else { alert(res.d.error || 'Could not begin.'); }
   });
 }
 
