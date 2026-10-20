@@ -204,6 +204,7 @@ a{color:var(--gold-deep);text-decoration:none}
       <button class="side-btn" data-tab="tasks"><span class="ico">🧘</span><span class="txt">Daily Tasks</span></button>
       <button class="side-btn" data-tab="community"><span class="ico">💬</span><span class="txt">Community</span></button>
       <button class="side-btn" data-tab="circle"><span class="ico">🪷</span><span class="txt">My Circle</span></button>
+      <button class="side-btn" data-tab="forty"><span class="ico">🕯️</span><span class="txt">Forty Days</span></button>
       <button class="side-btn" data-tab="support"><span class="ico">💎</span><span class="txt">Support Us</span></button>
       <div class="spacer"></div>
       <button class="logout" id="logoutBtn"><span class="ico">⎋</span><span class="txt">Sign Out</span></button>
@@ -214,6 +215,7 @@ a{color:var(--gold-deep);text-decoration:none}
       <section id="view-dashboard" class="view active">
         <div class="dash-greet">Peace, <em id="dashName">traveller</em>.</div>
         <p class="dash-sub">Continue your journey. Every step matters.</p>
+        <div class="quote-card" id="challengeCard" style="display:none;margin-bottom:1.5rem"></div>
         <div class="quote-card">
           <div class="q-label" id="reflTitle">Reflection of the Day</div>
           <blockquote id="dashQuote">Seek peace within, and you will find it everywhere.</blockquote>
@@ -224,7 +226,6 @@ a{color:var(--gold-deep);text-decoration:none}
           </div>
           <cite id="dashQuoteSrc">— The Wisdom of the Three Paths</cite>
         </div>
-        <div class="quote-card" id="challengeCard" style="margin-top:1.5rem;display:none"></div>
         <p class="dash-sub" id="inviteLine" style="margin-top:-.5rem"></p>
         <div class="stats-grid">
           <div class="stat-card"><div class="stat-ico">🔮</div><div class="stat-val" id="dashRank">Seeker</div><div class="stat-lbl">Current Rank</div></div>
@@ -265,6 +266,13 @@ a{color:var(--gold-deep);text-decoration:none}
             </div>
           </div>
         </div>
+      </section>
+
+      <!-- FORTY DAYS -->
+      <section id="view-forty" class="view">
+        <div class="tasks-head">The Forty Days</div>
+        <p class="tasks-sub">One practice a day, for forty days. This is the whole programme — there is nothing else to buy or unlock.</p>
+        <div id="fortyBody"></div>
       </section>
 
       <!-- MY CIRCLE -->
@@ -404,6 +412,7 @@ function switchTab(tab){
   if(tab === 'community'){ loadChannel(); startChatPolling(); }
   else stopChatPolling();
   if(tab === 'circle') loadCircle();
+  if(tab === 'forty') loadForty();
 }
 
 // ===== MY CIRCLE (rank 5 Stewards) =====
@@ -575,8 +584,8 @@ function resetListenBtn(){
 if('speechSynthesis' in window){ speechSynthesis.onvoiceschanged = function(){}; }
 
 // ===== THE FORTY DAYS =====
-function renderChallenge(ch){
-  var card = document.getElementById('challengeCard');
+function renderChallenge(ch, elId){
+  var card = document.getElementById(elId || 'challengeCard');
   if(!card || !ch) return;
   card.style.display = 'block';
   if(!ch.started){
@@ -596,8 +605,14 @@ function renderChallenge(ch){
 }
 function startChallenge(){
   api('/api/member/challenge/start',{method:'POST',body:'{}'}).then(function(res){
-    if(res.ok){ loadDashboard(); }
+    if(res.ok){ loadDashboard(); loadForty(); }
     else { alert(res.d.error || 'Could not begin.'); }
+  });
+}
+function loadForty(){
+  api('/api/member/challenge').then(function(res){
+    if(!res.ok) return;
+    renderChallenge(res.d, 'fortyBody');
   });
 }
 
