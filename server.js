@@ -1068,6 +1068,19 @@ app.post('/api/admin/send-setup', requireAuth, requireAdmin, async (req, res) =>
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Is email actually able to reach members? Surfaced in the admin panel.
+app.get('/api/admin/email-config', requireAuth, requireAdmin, async (req, res) => {
+  const sandbox = /resend\.dev/i.test(EMAIL_FROM);
+  res.json({
+    from: EMAIL_FROM,
+    provider: RESEND_API_KEY ? 'resend' : (transporter ? 'smtp' : 'none'),
+    sandbox: sandbox,
+    note: sandbox
+      ? 'Resend is in test mode: it will only deliver to the address that owns the Resend account. Verify a domain at resend.com/domains and change EMAIL_FROM to an address on that domain.'
+      : 'Sending from a verified domain.'
+  });
+});
+
 // Admin: prove whether email delivery works, and see exactly what the provider says.
 app.get('/api/admin/email-test', requireAuth, requireAdmin, async (req, res) => {
   try {

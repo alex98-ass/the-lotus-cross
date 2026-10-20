@@ -177,6 +177,7 @@ footer p{font-size:.8rem;color:var(--muted)}
   <!-- SYSTEM -->
   <div id="pane-system" class="tabpane">
     <p class="helper">Security, records and rescue. Everything here is for your eyes only.</p>
+    <div id="emailWarning" style="display:none;margin-bottom:1.2rem;padding:.9rem 1.1rem;border:1px solid rgba(201,74,74,.4);background:rgba(201,74,74,.1);border-radius:2px;font-size:.88rem;color:#e59a9a"></div>
 
     <div class="card" style="margin-bottom:1.2rem">
       <div class="card-label">Two-factor sign-in</div>
@@ -363,7 +364,22 @@ function closeProofModal(){
 }
 
 function loadSystem(){
-  load2fa(); loadAudit(); loadErrors();
+  load2fa(); loadAudit(); loadErrors(); loadEmailConfig();
+}
+function loadEmailConfig(){
+  api('/api/admin/email-config').then(function(res){
+    var box = document.getElementById('emailWarning');
+    if(!res.ok || !box) return;
+    if(res.d.sandbox){
+      box.style.display = 'block';
+      box.innerHTML = '<strong>Email is in test mode.</strong> The provider will only deliver to the address that owns the Resend account. ' +
+        'Every other member gets nothing — approvals and password links included. ' +
+        'Fix: verify a domain at resend.com/domains, then set EMAIL_FROM to an address on it.<br>' +
+        '<span style="color:#c9a227">Meanwhile: use “Send setup link” on a member to get a link you can pass on yourself.</span>';
+    } else {
+      box.style.display = 'none';
+    }
+  });
 }
 function load2fa(){
   api('/api/admin/2fa/status').then(function(res){
