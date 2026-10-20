@@ -131,6 +131,18 @@ async function initDb() {
       created_at TIMESTAMPTZ DEFAULT now()
     )`);
   await pool.query("CREATE INDEX IF NOT EXISTS proofs_status_idx ON proofs(status)");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_optin BOOLEAN DEFAULT true");
+  await pool.query(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`);
+  await pool.query("INSERT INTO settings (key,value) VALUES ('last_daily_send','') ON CONFLICT (key) DO NOTHING");
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS interest (
+      id SERIAL PRIMARY KEY,
+      name TEXT,
+      email TEXT NOT NULL UNIQUE,
+      tier TEXT DEFAULT 'supporter',
+      note TEXT,
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`);
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by INTEGER");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code TEXT");
   await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS users_referral_code_idx ON users(referral_code) WHERE referral_code IS NOT NULL");
@@ -262,6 +274,11 @@ function sendEmail(to, subject, html) {
 // ===== MIDDLEWARE =====
 app.use(express.json({ limit: '6mb' }));
 app.use(express.static(PUBLIC_DIR));
+// A free-tier server sleeps; any visit wakes it. The first visit of a new day sends the daily reflection.
+app.use(function (req, res, next) {
+  if (req.method === 'GET') { sendDailyReflection(false).catch(function () {}); }
+  next();
+});
 
 async function createSession(userId) {
   const token = crypto.randomBytes(32).toString('hex');
@@ -396,6 +413,115 @@ app.get('/api/reflection/today', requireAuth, async (req, res) => {
   try {
     const r = await reflectionForToday();
     res.json({ reflection: r, date: todayKey() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== LEADERBOARD (the reason people come back tomorrow) =====
+app.get('/api/leaderboard', async (req, res) => {
+  try {
+    const rows = (await pool.query(
+      `SELECT id, name, country, rank, xp, streak, tasks_completed
+       FROM users WHERE status='approved' AND role<>'admin'
+       ORDER BY tasks_completed DESC, streak DESC, xp DESC LIMIT 12`)).rows;
+    const board = rows.map(function (u, i) {
+      const parts = String(u.name || '').trim().split(/\s+/);
+      const short = parts.length > 1 ? parts[0] + ' ' + parts[parts.length - 1][0] + '.' : parts[0];
+      return { pos: i + 1, name: short, country: u.country, rank: u.rank, xp: u.xp, streak: u.streak, tasks_completed: u.tasks_completed };
+    });
+    const total = (await pool.query("SELECT COUNT(*)::int AS c FROM users WHERE status='approved' AND role<>'admin'")).rows[0].c;
+    res.json({ leaderboard: board, total: total, ranks: RANKS });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== FOUNDING MEMBERS (people who want the paid tier before it exists) =====
+app.post('/api/interest', async (req, res) => {
+  try {
+    const email = String(req.body.email || '').toLowerCase().trim();
+    const name = String(req.body.name || '').slice(0, 120);
+    const tier = ['free', 'supporter', 'circle'].includes(req.body.tier) ? req.body.tier : 'supporter';
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'A valid email is required' });
+    await pool.query(
+      `INSERT INTO interest (name, email, tier, note) VALUES ($1,$2,$3,$4)
+       ON CONFLICT (email) DO UPDATE SET tier=$3, name=COALESCE(NULLIF($1,''), interest.name)`,
+      [name, email, tier, String(req.body.note || '').slice(0, 500)]);
+    sendEmail(email, 'You are on the founding list — The Lotus Cross',
+      `<h2>✦ Thank you, ${name || 'friend'}</h2>
+       <p>You are on the list for the founding places. When the supporter tier opens, you will be the first told — and the first invited.</p>
+       <p>In the meantime the whole path is free: the daily practice, the reflections, the community.</p>
+       <p><a href="${process.env.PUBLIC_URL || 'https://the-lotus-cross.onrender.com'}/index.html">Begin here</a></p>`);
+    const count = (await pool.query("SELECT COUNT(*)::int AS c FROM interest")).rows[0].c;
+    res.json({ ok: true, position: count });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/admin/interest', requireAuth, requireAdmin, async (req, res) => {
+  const rows = (await pool.query("SELECT * FROM interest ORDER BY created_at DESC LIMIT 200")).rows;
+  res.json({ interest: rows, count: rows.length });
+});
+
+// ===== DAILY RITUAL EMAIL (triggered by a free scheduled job) =====
+function unsubToken(id) {
+  return crypto.createHmac('sha256', process.env.CRON_SECRET || 'lotus-dev-secret').update(String(id)).digest('hex').slice(0, 20);
+}
+app.get('/api/unsubscribe', async (req, res) => {
+  const id = parseInt(req.query.u, 10), t = String(req.query.t || '');
+  if (!id || t !== unsubToken(id)) return res.status(400).send('Invalid link');
+  await pool.query("UPDATE users SET email_optin=false WHERE id=$1", [id]);
+  res.send('<p style="font-family:Georgia,serif;padding:2rem">You will no longer receive the daily reflection. The door stays open.</p>');
+});
+
+// Sends today's reflection once per day. Claimed atomically, so it is safe to call often.
+async function sendDailyReflection(force) {
+  const today = todayKey();
+  const claim = await pool.query(
+    "UPDATE settings SET value=$1 WHERE key='last_daily_send' AND value<>$1 RETURNING value", [today]);
+  if (!claim.rowCount && !force) return { ok: false, reason: 'already sent today' };
+  const r = await reflectionForToday();
+  if (!r) return { ok: false, reason: 'no reflection' };
+  const users = (await pool.query(
+    "SELECT id, name, email FROM users WHERE status='approved' AND COALESCE(email_optin,true)=true AND email IS NOT NULL")).rows;
+  const base = process.env.PUBLIC_URL || 'https://the-lotus-cross.onrender.com';
+  let sent = 0;
+  for (const u of users) {
+    await sendEmail(u.email, r.title + ' — today at The Lotus Cross',
+      `<h2>✦ ${r.title}</h2>
+       <p style="font-size:16px;line-height:1.7">${r.body}</p>
+       ${r.practice ? '<p><strong>Today\'s practice:</strong> ' + r.practice + '</p>' : ''}
+       <p style="color:#777">— ${r.source || 'The Lotus Cross'}</p>
+       <p><a href="${base}/portal.html">Open your portal →</a></p>
+       <p style="font-size:11px;color:#999">You receive this because you are a member. <a href="${base}/api/unsubscribe?u=${u.id}&t=${unsubToken(u.id)}">Unsubscribe</a></p>`);
+    sent++;
+  }
+  return { ok: true, sent: sent, reflection: r.title, date: today };
+}
+
+app.get('/api/cron/daily', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    res.json(await sendDailyReflection(true));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/cron/daily-legacy', async (req, res) => {
+  try {
+    if (!process.env.CRON_SECRET) return res.status(503).json({ error: 'CRON_SECRET not set' });
+    if (String(req.query.key || '') !== process.env.CRON_SECRET) return res.status(403).json({ error: 'Forbidden' });
+    const r = await reflectionForToday();
+    if (!r) return res.json({ ok: false, reason: 'no reflection' });
+    const users = (await pool.query(
+      "SELECT id, name, email FROM users WHERE status='approved' AND COALESCE(email_optin,true)=true AND email IS NOT NULL")).rows;
+    const base = process.env.PUBLIC_URL || 'https://the-lotus-cross.onrender.com';
+    let sent = 0;
+    for (const u of users) {
+      await sendEmail(u.email, r.title + ' — today at The Lotus Cross',
+        `<h2>✦ ${r.title}</h2>
+         <p style="font-size:16px;line-height:1.7">${r.body}</p>
+         ${r.practice ? '<p><strong>Today\'s practice:</strong> ' + r.practice + '</p>' : ''}
+         <p style="color:#777">— ${r.source || 'The Lotus Cross'}</p>
+         <p><a href="${base}/portal.html">Open your portal →</a></p>
+         <p style="font-size:11px;color:#999">You receive this because you are a member. <a href="${base}/api/unsubscribe?u=${u.id}&t=${unsubToken(u.id)}">Unsubscribe</a></p>`);
+      sent++;
+    }
+    res.json({ ok: true, sent: sent, reflection: r.title, date: todayKey() });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

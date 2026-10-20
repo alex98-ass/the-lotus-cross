@@ -72,6 +72,31 @@ nav .links .btn-nav:hover{background:var(--gold-deep);color:#fff}
 .enroll .inner{max-width:560px;margin:0 auto;text-align:center}
 .enroll h2{font-family:'Cormorant Garamond',serif;font-size:2.3rem;font-weight:500;margin-bottom:.6rem}
 .enroll .sub{color:var(--muted);margin-bottom:2.5rem}
+.membership{padding:6rem 2rem;max-width:1120px;margin:0 auto}
+.membership .section-head{text-align:center;margin-bottom:1rem}
+.tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:1.5rem;margin-top:3rem}
+.tier{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:2.2rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.tier.featured{border-color:var(--gold);box-shadow:0 18px 50px rgba(168,132,42,.16);position:relative}
+.tier.featured:after{content:'Most chosen';position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--gold);color:#fff;font-size:.68rem;letter-spacing:1.4px;text-transform:uppercase;padding:.25rem .9rem;border-radius:20px;font-weight:600}
+.tier h3{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:500;margin-bottom:.2rem}
+.tier .tier-sub{color:var(--muted);font-size:.86rem;margin-bottom:1.2rem}
+.tier .price{font-family:'Cormorant Garamond',serif;font-size:2.6rem;line-height:1;color:var(--gold-deep)}
+.tier .price span{font-family:'Inter',sans-serif;font-size:.8rem;color:var(--muted);letter-spacing:.5px}
+.tier ul{list-style:none;margin:1.4rem 0 1.8rem;flex:1}
+.tier li{padding:.4rem 0;font-size:.9rem;color:var(--muted);display:flex;gap:.5rem}
+.tier li:before{content:'✦';color:var(--gold);font-size:.75rem;margin-top:.35rem}
+.tier .tier-cta{display:block;text-align:center;padding:.85rem 1rem;border-radius:10px;border:1px solid var(--gold);color:var(--gold-deep);text-decoration:none;font-size:.85rem;font-weight:600;letter-spacing:.5px;cursor:pointer;background:none;font-family:inherit;transition:all .25s}
+.tier .tier-cta:hover{background:var(--gold);color:#fff}
+.tier .tier-cta.solid{background:var(--gold);color:#fff}
+.tier .tier-cta.solid:hover{background:var(--gold-deep)}
+.founding{max-width:560px;margin:3.5rem auto 0;text-align:center;border-top:1px solid var(--line);padding-top:2.5rem}
+.founding h3{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:500;margin-bottom:.4rem}
+.founding p{color:var(--muted);font-size:.9rem;margin-bottom:1.2rem}
+.founding .row{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center}
+.founding input{padding:.8rem 1rem;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:.9rem;min-width:170px;background:#fff;color:var(--ink)}
+.founding button{padding:.8rem 1.4rem;border:none;border-radius:10px;background:var(--gold);color:#fff;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer}
+.founding button:hover{background:var(--gold-deep)}
+.founding .ok{color:#2f6b3a;font-size:.9rem;margin-top:.8rem}
 .form-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:3rem 2.5rem;box-shadow:var(--shadow);text-align:left}
 .field{margin-bottom:1.4rem}
 .field label{display:block;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--gold-deep);margin-bottom:.5rem}
@@ -104,6 +129,7 @@ footer a{color:var(--gold-deep);text-decoration:none}
   <a href="mission.html" class="logo">The <em>Lotus</em> Cross</a>
   <div class="links">
     <a href="#paths">The Paths</a>
+    <a href="#membership">Membership</a>
     <a href="#enroll">Join</a>
     <a href="mission.html">Mission</a>
     <a href="portal.html" class="btn-nav">Login</a>
@@ -152,6 +178,66 @@ footer a{color:var(--gold-deep);text-decoration:none}
       <div class="path-tag">Wisdom</div>
       <p>The path of knowledge. Explore dharma and karma, and discover the unity of all things, living in harmony with the order of the universe.</p>
     </div>
+  </div>
+</section>
+
+<!-- MEMBERSHIP -->
+<section id="membership" class="membership">
+  <div class="section-head">
+    <h2>Walk freely. Support if you can.</h2>
+    <p>Nothing essential is ever behind a paywall. The path is free — those who can, keep the lamp burning.</p>
+  </div>
+  <div class="tiers">
+    <div class="tier">
+      <h3>Seeker</h3>
+      <div class="tier-sub">For everyone, always</div>
+      <div class="price">Free<span> forever</span></div>
+      <ul>
+        <li>A new reflection every morning</li>
+        <li>Daily practices, streaks and ranks</li>
+        <li>The community — channels and direct messages</li>
+        <li>The ladder of outward practices, reviewed by a Guide</li>
+        <li>Local circles near you</li>
+      </ul>
+      <a href="#enroll" class="tier-cta solid">Begin free →</a>
+    </div>
+    <div class="tier featured">
+      <h3>Supporter</h3>
+      <div class="tier-sub">For those who want to build it</div>
+      <div class="price">£5<span> / month</span></div>
+      <ul>
+        <li>Everything in Seeker</li>
+        <li>The monthly live gathering with the founder</li>
+        <li>Your questions answered first, by name</li>
+        <li>A printed annual reflection, posted to you</li>
+        <li>A seat at the table deciding where the Karma Fund goes</li>
+      </ul>
+      <button class="tier-cta" onclick="focusFounding('supporter')">Reserve a founding place</button>
+    </div>
+    <div class="tier">
+      <h3>Circle</h3>
+      <div class="tier-sub">For those who lead others</div>
+      <div class="price">£9.99<span> / month</span></div>
+      <ul>
+        <li>Everything in Supporter</li>
+        <li>A one-to-one every quarter — an hour, unhurried</li>
+        <li>Licence to steward a circle in your own town</li>
+        <li>Printed study booklets for your circle</li>
+        <li>You keep 75% of what your circle receives</li>
+      </ul>
+      <button class="tier-cta" onclick="focusFounding('circle')">Reserve a founding place</button>
+    </div>
+  </div>
+
+  <div class="founding" id="founding">
+    <h3>Founding places</h3>
+    <p>The paid tiers open once there are fifty names on this list. Leave yours and you will be told first — nothing is charged today.</p>
+    <div class="row">
+      <input id="fName" placeholder="Your name">
+      <input id="fEmail" type="email" placeholder="you@email.com">
+      <button onclick="joinFounding()">Join the list</button>
+    </div>
+    <p class="ok" id="fMsg"></p>
   </div>
 </section>
 
@@ -206,6 +292,32 @@ function toggleMenu(){
 // Nav solid on scroll
 var nav=document.getElementById('mainNav');
 window.addEventListener('scroll',function(){nav.classList.toggle('scrolled',window.scrollY>40);},{passive:true});
+
+// Founding places — a real waitlist, stored server-side. Nothing is charged.
+var foundingTier='supporter';
+function focusFounding(tier){
+  foundingTier=tier||'supporter';
+  var f=document.getElementById('founding');
+  if(f) f.scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(function(){ var e=document.getElementById('fEmail'); if(e) e.focus(); },450);
+}
+function joinFounding(){
+  var email=document.getElementById('fEmail').value.trim();
+  var name=document.getElementById('fName').value.trim();
+  var msg=document.getElementById('fMsg');
+  if(!email || email.indexOf('@')<0){ msg.style.color='#a33'; msg.textContent='Please enter a valid email.'; return; }
+  msg.style.color=''; msg.textContent='Sending…';
+  fetch('/api/interest',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:name,email:email,tier:foundingTier})})
+    .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); })
+    .then(function(res){
+      if(!res.ok){ msg.style.color='#a33'; msg.textContent=res.d.error||'Something went wrong.'; return; }
+      msg.style.color='#2f6b3a';
+      msg.textContent='You are number '+res.d.position+' on the list. Check your email.';
+      document.getElementById('fEmail').value=''; document.getElementById('fName').value='';
+    })
+    .catch(function(){ msg.style.color='#a33'; msg.textContent='Network error. Please try again.'; });
+}
 
 // Enrollment form — success message stays hidden until a successful submit
 function submitForm(e){

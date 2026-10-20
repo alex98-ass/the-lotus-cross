@@ -227,6 +227,10 @@ a{color:var(--gold-deep);text-decoration:none}
           <div class="stat-card"><div class="stat-ico">🔥</div><div class="stat-val" id="dashStreak">0</div><div class="stat-lbl">Day Streak</div></div>
         </div>
         <div class="cta-row"><a href="#" class="cta-btn" onclick="switchTab('tasks');return false">Start today's tasks →</a></div>
+        <div class="quote-card" style="margin-top:2rem">
+          <div class="q-label">On the path this week</div>
+          <div id="leaderboard" style="margin-top:.6rem"><span style="color:var(--muted);font-size:.9rem">Loading…</span></div>
+        </div>
       </section>
 
       <!-- DAILY TASKS -->
@@ -513,6 +517,7 @@ function loadDashboard(){
       document.getElementById('dashQuote').textContent = QUOTES[day].text;
       document.getElementById('dashQuoteSrc').textContent = QUOTES[day].src;
     }
+    renderLeaderboard(u.name);
     var b = res.d.brought || {total:0, approved:0};
     var inv = document.getElementById('inviteLine');
     if(u.referral_code){
@@ -522,6 +527,27 @@ function loadDashboard(){
         ' <button onclick="copyInvite(\'' + link + '\')" style="margin-left:.4rem;background:transparent;border:1px solid var(--line);border-radius:6px;padding:.15rem .5rem;cursor:pointer;font-size:.78rem;color:var(--muted)">copy</button>';
     }
   });
+}
+
+// ===== LEADERBOARD =====
+function renderLeaderboard(myId){
+  fetch('/api/leaderboard').then(function(r){ return r.json(); }).then(function(d){
+    var box = document.getElementById('leaderboard');
+    if(!box) return;
+    var rows = d.leaderboard || [];
+    if(!rows.length){ box.innerHTML = '<span style="color:var(--muted);font-size:.9rem">The path is empty. Be the first to walk it.</span>'; return; }
+    var icons = ['🌱','🌿','🔥','⭐','✦','🪷'];
+    box.innerHTML = rows.map(function(p){
+      var medal = p.pos===1?'🥇':p.pos===2?'🥈':p.pos===3?'🥉':(p.pos+'.');
+      var me = myName && p.name.split(' ')[0].toLowerCase() === myName.split(' ')[0].toLowerCase();
+      return '<div style="display:flex;align-items:center;gap:.7rem;padding:.45rem 0;border-bottom:1px solid var(--line);font-size:.92rem'+(me?';font-weight:600':'')+'">'+
+        '<span style="width:2rem;color:var(--gold-deep)">'+medal+'</span>'+
+        '<span style="flex:1">'+p.name+'</span>'+
+        '<span style="color:var(--muted);font-size:.82rem">'+icons[p.rank||0]+' · '+p.tasks_completed+' practices</span>'+
+        '<span style="color:var(--gold-deep);font-weight:600;min-width:3.5rem;text-align:right">'+(p.streak||0)+'d 🔥</span>'+
+      '</div>';
+    }).join('') + '<div style="margin-top:.8rem;font-size:.82rem;color:var(--muted)">'+d.total+' walking together. Order is by practices completed, then streak.</div>';
+  }).catch(function(){});
 }
 
 // ===== DAILY TASKS =====
