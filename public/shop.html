@@ -311,10 +311,17 @@ document.querySelectorAll('[data-wait]').forEach(function(b){
   if(!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches){
     els.forEach(function(e){ e.classList.add('in'); }); return;
   }
+  var fired = false;
   var io = new IntersectionObserver(function(entries){
+    fired = true;
     entries.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
   }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
   els.forEach(function(e){ io.observe(e); });
+  // Safety net: if the observer never fires (old browser, odd embedding, instant load),
+  // the page must still be readable. Never ship invisible content.
+  setTimeout(function(){
+    if(!fired){ els.forEach(function(e){ e.classList.add('in'); }); }
+  }, 1500);
 })();
 </script>
 <script src="/authnav.js"></script>
