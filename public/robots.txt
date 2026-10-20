@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /portal.html
+Disallow: /admin.html
+Disallow: /login.html
+Disallow: /api/
+
+Sitemap: https://the-lotus-cross.onrender.com/sitemap.xml

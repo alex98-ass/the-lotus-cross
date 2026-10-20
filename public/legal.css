@@ -1,0 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600&family=Inter:wght@300;400;500;600&display=swap');
+:root{--bg:#faf8f4;--ink:#221f1a;--muted:#6f6a60;--gold:#a8842a;--gold-deep:#8a6a1f;--line:#ece6db}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);line-height:1.75;-webkit-font-smoothing:antialiased}
+header.top{padding:2rem 1.5rem;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;max-width:820px;margin:0 auto}
+header.top a{color:var(--ink);text-decoration:none;font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:600;letter-spacing:.4px}
+header.top a em{color:var(--gold);font-style:normal}
+header.top nav{display:flex;gap:1.2rem;flex-wrap:wrap}
+header.top nav a{font-family:'Inter',sans-serif;font-size:.82rem;color:var(--muted)}
+header.top nav a:hover{color:var(--gold-deep)}
+main{max-width:820px;margin:0 auto;padding:3.5rem 1.5rem 5rem}
+h1{font-family:'Cormorant Garamond',serif;font-size:2.6rem;font-weight:400;letter-spacing:.5px;margin-bottom:.4rem}
+.updated{color:var(--muted);font-size:.82rem;margin-bottom:2.5rem}
+h2{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:500;margin:2.4rem 0 .7rem;color:var(--ink)}
+h3{font-size:1rem;font-weight:600;margin:1.6rem 0 .4rem}
+p,li{color:#3c3831;font-size:.95rem;margin-bottom:.9rem}
+ul,ol{margin:0 0 1.2rem 1.3rem}
+li{margin-bottom:.45rem}
+a{color:var(--gold-deep)}
+strong{color:var(--ink)}
+.callout{background:#fff;border:1px solid var(--line);border-left:3px solid var(--gold);padding:1.1rem 1.3rem;margin:1.4rem 0;border-radius:6px}
+.callout p:last-child{margin-bottom:0}
+table{width:100%;border-collapse:collapse;margin:1rem 0 1.6rem;font-size:.88rem}
+th,td{text-align:left;padding:.6rem .7rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--gold-deep);font-weight:600;font-size:.76rem;text-transform:uppercase;letter-spacing:.8px}
+footer{max-width:820px;margin:0 auto;padding:2rem 1.5rem 4rem;border-top:1px solid var(--line);color:var(--muted);font-size:.82rem}
+footer a{color:var(--muted);text-decoration:none;margin-right:1rem}
+footer a:hover{color:var(--gold-deep)}

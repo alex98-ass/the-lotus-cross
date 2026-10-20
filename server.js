@@ -134,6 +134,13 @@ async function initDb() {
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_optin BOOLEAN DEFAULT true");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS challenge_started_at TEXT");
   await pool.query(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS errors (
+    id SERIAL PRIMARY KEY, where_ TEXT, message TEXT, stack TEXT, created_at TIMESTAMPTZ DEFAULT now())`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS audit_log (
+    id SERIAL PRIMARY KEY, actor_id INTEGER, actor_email TEXT, action TEXT, target TEXT, meta TEXT,
+    created_at TIMESTAMPTZ DEFAULT now())`);
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_pending TEXT");
   await pool.query("INSERT INTO settings (key,value) VALUES ('last_daily_send','') ON CONFLICT (key) DO NOTHING");
   await pool.query(`
     CREATE TABLE IF NOT EXISTS interest (
@@ -269,7 +276,38 @@ function sendEmail(to, subject, html) {
 }
 
 // ===== MIDDLEWARE =====
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '6mb' }));
+
+// ===== RATE LIMITING (in-memory; the app runs as a single instance) =====
+const rateBuckets = new Map();
+function rateLimit(max, windowMs) {
+  return function (req, res, next) {
+    const ip = String((req.headers['x-forwarded-for'] || '').split(',')[0] || req.ip || 'unknown').trim();
+    const key = req.path + '|' + ip;
+    const now = Date.now();
+    let b = rateBuckets.get(key);
+    if (!b || now - b.start > windowMs) { b = { start: now, count: 0 }; rateBuckets.set(key, b); }
+    b.count++;
+    if (b.count > max) {
+      res.set('Retry-After', String(Math.ceil((windowMs - (now - b.start)) / 1000)));
+      return res.status(429).json({ error: 'Too many attempts. Please wait a few minutes and try again.' });
+    }
+    next();
+  };
+}
+setInterval(function () {
+  const now = Date.now();
+  for (const [k, v] of rateBuckets) if (now - v.start > 3600000) rateBuckets.delete(k);
+}, 600000).unref();
+
+// ===== ERROR CAPTURE (so a crash is visible, not silent) =====
+async function recordError(where, err) {
+  try {
+    await pool.query("INSERT INTO errors (where_, message, stack) VALUES ($1,$2,$3)",
+      [String(where).slice(0, 120), String(err && err.message || err).slice(0, 800), String(err && err.stack || '').slice(0, 4000)]);
+  } catch (e) { console.error('error-log failed', e.message); }
+}
 app.use(express.static(PUBLIC_DIR));
 // A free-tier server sleeps; any visit wakes it. The first visit of a new day sends the daily reflection.
 app.use(function (req, res, next) {
@@ -327,7 +365,7 @@ function calcRank(tasks) {
 // ===== PUBLIC API =====
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
-app.post('/api/enroll', async (req, res) => {
+app.post('/api/enroll', rateLimit(5, 60 * 60 * 1000), async (req, res) => {
   try {
     const { name, email, country, age, tradition, message, ref } = req.body;
     if (!name || !email) return res.status(400).json({ error: 'Name and email required' });
@@ -361,8 +399,52 @@ app.post('/api/enroll', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ===== AUDIT + TWO-FACTOR =====
+async function audit(actor, action, target, meta) {
+  try {
+    await pool.query("INSERT INTO audit_log (actor_id, actor_email, action, target, meta) VALUES ($1,$2,$3,$4,$5)",
+      [actor && actor.id || null, actor && actor.email || null, String(action).slice(0, 80), String(target || '').slice(0, 200), String(meta || '').slice(0, 500)]);
+  } catch (e) { console.error('audit failed', e.message); }
+}
+
+const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+function b32encode(buf) {
+  let bits = 0, value = 0, out = '';
+  for (const byte of buf) {
+    value = (value << 8) | byte; bits += 8;
+    while (bits >= 5) { out += B32[(value >>> (bits - 5)) & 31]; bits -= 5; }
+  }
+  if (bits > 0) out += B32[(value << (5 - bits)) & 31];
+  return out;
+}
+function b32decode(str) {
+  const clean = String(str).toUpperCase().replace(/[^A-Z2-7]/g, '');
+  let bits = 0, value = 0; const out = [];
+  for (const ch of clean) {
+    const idx = B32.indexOf(ch); if (idx === -1) continue;
+    value = (value << 5) | idx; bits += 5;
+    if (bits >= 8) { out.push((value >>> (bits - 8)) & 255); bits -= 8; }
+  }
+  return Buffer.from(out);
+}
+function totpCode(secret, counter) {
+  const key = b32decode(secret);
+  const buf = Buffer.alloc(8);
+  buf.writeUInt32BE(Math.floor(counter / 0x100000000), 0);
+  buf.writeUInt32BE(counter % 0x100000000, 4);
+  const hmac = crypto.createHmac('sha1', key).update(buf).digest();
+  const off = hmac[hmac.length - 1] & 0xf;
+  const bin = ((hmac[off] & 0x7f) << 24) | ((hmac[off + 1] & 0xff) << 16) | ((hmac[off + 2] & 0xff) << 8) | (hmac[off + 3] & 0xff);
+  return String(bin % 1000000).padStart(6, '0');
+}
+function verifyTotp(secret, code) {
+  const step = Math.floor(Date.now() / 30000);
+  for (let d = -1; d <= 1; d++) if (totpCode(secret, step + d) === String(code)) return true;
+  return false;
+}
+
 // ===== AUTH =====
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', rateLimit(12, 10 * 60 * 1000), async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
@@ -370,6 +452,15 @@ app.post('/api/login', async (req, res) => {
     if (!user || !user.password_hash) return res.status(401).json({ error: 'Invalid email or password' });
     if (!bcrypt.compareSync(password, user.password_hash)) return res.status(401).json({ error: 'Invalid email or password' });
     if (user.status !== 'approved') return res.status(403).json({ error: 'Your enrollment is still pending approval' });
+    // Two-factor, if the account has it enabled
+    if (user.totp_secret) {
+      const code = String(req.body.code || '').replace(/\s+/g, '');
+      if (!code) return res.status(401).json({ needs2fa: true, error: 'Enter the six-digit code from your authenticator app' });
+      if (!verifyTotp(user.totp_secret, code)) {
+        await audit(user, 'login.2fa_failed', user.email, '');
+        return res.status(401).json({ needs2fa: true, error: 'That code is not valid. Codes change every 30 seconds.' });
+      }
+    }
     const token = await createSession(user.id);
     res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, rank: user.rank } });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -490,6 +581,8 @@ async function sendDailyReflection(force) {
        <p style="font-size:11px;color:#999">You receive this because you are a member. <a href="${base}/api/unsubscribe?u=${u.id}&t=${unsubToken(u.id)}">Unsubscribe</a></p>`);
     sent++;
   }
+  // Data minimisation: evidence photographs are kept for 180 days, then the image is dropped.
+  await pool.query("UPDATE proofs SET image='' WHERE created_at < now() - interval '180 days' AND image<>''");
   return { ok: true, sent: sent, reflection: r.title, date: today };
 }
 
@@ -661,7 +754,7 @@ app.post('/api/member/challenge/start', requireAuth, async (req, res) => {
 });
 
 // ===== PROOFS (outward practices, evidenced and reviewed) =====
-app.post('/api/member/proof', requireAuth, async (req, res) => {
+app.post('/api/member/proof', requireAuth, rateLimit(20, 60 * 60 * 1000), async (req, res) => {
   try {
     const u = req.user;
     const taskId = parseInt(req.body.taskId, 10);
@@ -740,9 +833,11 @@ app.post('/api/admin/proofs/:id/review', requireAuth, requireValidator, async (r
     const task = (await pool.query("SELECT * FROM tasks WHERE id=$1", [p.task_id])).rows[0];
     if (action === 'reject') {
       await pool.query("UPDATE proofs SET status='rejected', reviewed_by=$1, reviewed_at=now(), review_note=$2 WHERE id=$3", [req.user.id, note, proofId]);
+      await audit(req.user, 'proof.rejected', 'proof ' + proofId, note);
       return res.json({ ok: true, status: 'rejected' });
     }
     await pool.query("UPDATE proofs SET status='approved', reviewed_by=$1, reviewed_at=now(), review_note=$2 WHERE id=$3", [req.user.id, note, proofId]);
+    await audit(req.user, 'proof.approved', 'proof ' + proofId + ' / task ' + p.task_id, '');
     // Credit the practice (once per day, like any other)
     const xp = task.xp || 20;
     await pool.query("INSERT INTO tasks_done (user_id, task_id, date) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING", [p.user_id, p.task_id, p.date]);
@@ -778,6 +873,7 @@ app.post('/api/admin/approve', requireAuth, requireAdmin, async (req, res) => {
   const user = (await pool.query("SELECT * FROM users WHERE id=$1", [userId])).rows[0];
   if (!user) return res.status(404).json({ error: 'User not found' });
   await pool.query("UPDATE users SET status='approved', approved_at=now() WHERE id=$1", [userId]);
+  await audit(req.user, 'member.approved', user.email, '');
   const link = await issueSetupLink(user);
   sendEmail(user.email, 'You are approved! Welcome to The Lotus Cross',
     `<h2>✦ Welcome, ${user.name}!</h2>
@@ -791,6 +887,7 @@ app.post('/api/admin/approve', requireAuth, requireAdmin, async (req, res) => {
 app.post('/api/admin/reject', requireAuth, requireAdmin, async (req, res) => {
   const { userId } = req.body;
   await pool.query("UPDATE users SET status='rejected' WHERE id=$1", [userId]);
+  await audit(req.user, 'member.rejected', user.email, '');
   const user = (await pool.query("SELECT * FROM users WHERE id=$1", [userId])).rows[0];
   if (user) sendEmail(user.email, 'Update on your enrollment',
     `<h2>Dear ${user.name},</h2><p>After careful consideration, we are unable to approve your enrollment at this time.</p><p>You are welcome to reapply in the future. — The Lotus Cross</p>`);
@@ -849,12 +946,13 @@ app.post('/api/admin/set-rank', requireAuth, requireAdmin, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     const thresholds = [0, 7, 30, 90, 200, 500];
     await pool.query("UPDATE users SET rank=$1, tasks_completed=$2 WHERE id=$3", [r, thresholds[r], user.id]);
+    await audit(req.user, 'member.rank_set', user.email, 'rank ' + r);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // Password setup/reset — token-based only. Never allow setting a password from an email alone.
-app.post('/api/request-reset', async (req, res) => {
+app.post('/api/request-reset', rateLimit(5, 60 * 60 * 1000), async (req, res) => {
   try {
     const email = String(req.body.email || '').toLowerCase().trim();
     if (!email) return res.status(400).json({ error: 'Email required' });
@@ -874,7 +972,7 @@ app.post('/api/request-reset', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/set-password', async (req, res) => {
+app.post('/api/set-password', rateLimit(10, 60 * 60 * 1000), async (req, res) => {
   try {
     const { token, password } = req.body;
     if (!token || !password || String(password).length < 8) return res.status(400).json({ error: 'A valid link and a password of at least 8 characters are required' });
@@ -895,6 +993,83 @@ async function issueSetupLink(user) {
   await pool.query("INSERT INTO password_resets (token, user_id, expires_at) VALUES ($1,$2,now()+interval '7 days')", [token, user.id]);
   return (process.env.PUBLIC_URL || 'https://the-lotus-cross.onrender.com') + '/portal.html?setpw=' + token;
 }
+
+// ===== TWO-FACTOR MANAGEMENT (admin) =====
+app.post('/api/admin/2fa/setup', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const secret = b32encode(crypto.randomBytes(20));
+    await pool.query("UPDATE users SET totp_pending=$1 WHERE id=$2", [secret, req.user.id]);
+    const label = encodeURIComponent('The Lotus Cross:' + req.user.email);
+    res.json({
+      secret: secret,
+      otpauth: 'otpauth://totp/' + label + '?secret=' + secret + '&issuer=The%20Lotus%20Cross&digits=6&period=30',
+      instructions: 'Add this to Google Authenticator, Authy, 1Password or Aegis, then enter the six-digit code to turn it on.'
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/2fa/enable', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const pending = req.user.totp_pending;
+    if (!pending) return res.status(400).json({ error: 'Start the setup first' });
+    const code = String(req.body.code || '').replace(/\s+/g, '');
+    if (!verifyTotp(pending, code)) return res.status(400).json({ error: 'That code is not valid — check the clock on your phone and try the next one.' });
+    await pool.query("UPDATE users SET totp_secret=$1, totp_pending=NULL WHERE id=$2", [pending, req.user.id]);
+    await audit(req.user, 'admin.2fa_enabled', req.user.email, '');
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/2fa/disable', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    if (!req.user.totp_secret) return res.json({ ok: true, alreadyOff: true });
+    if (!bcrypt.compareSync(String(req.body.password || ''), req.user.password_hash || '')) return res.status(401).json({ error: 'Password required' });
+    await pool.query("UPDATE users SET totp_secret=NULL, totp_pending=NULL WHERE id=$1", [req.user.id]);
+    await audit(req.user, 'admin.2fa_disabled', req.user.email, '');
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/admin/2fa/status', requireAuth, requireAdmin, async (req, res) => {
+  res.json({ enabled: !!req.user.totp_secret, pending: !!req.user.totp_pending });
+});
+
+// ===== OVERSIGHT: AUDIT TRAIL, ERRORS, BACKUP =====
+app.get('/api/admin/audit', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const rows = (await pool.query("SELECT id, actor_email, action, target, meta, created_at FROM audit_log ORDER BY id DESC LIMIT 200")).rows;
+    res.json({ entries: rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/admin/errors', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const rows = (await pool.query("SELECT id, where_, message, created_at FROM errors ORDER BY id DESC LIMIT 100")).rows;
+    const count = (await pool.query("SELECT COUNT(*)::int AS c FROM errors WHERE created_at > now() - interval '7 days'")).rows[0].c;
+    res.json({ errors: rows, last7days: count });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Everything a person would need to rebuild the community, without secrets and without photographs.
+app.get('/api/admin/backup', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const users = (await pool.query(
+      "SELECT id,name,email,country,age,tradition,role,status,rank,xp,tasks_completed,streak,enrolled_at,approved_at,referral_code,referred_by,challenge_started_at FROM users ORDER BY id")).rows;
+    const tasks = (await pool.query("SELECT * FROM tasks ORDER BY id")).rows;
+    const done = (await pool.query("SELECT * FROM tasks_done ORDER BY date")).rows;
+    const proofs = (await pool.query("SELECT id,user_id,task_id,date,caption,status,reviewed_by,reviewed_at,review_note FROM proofs ORDER BY id")).rows;
+    const messages = (await pool.query("SELECT id,sender_id,receiver_id,channel,body,created_at FROM messages ORDER BY id")).rows;
+    const circles = (await pool.query("SELECT * FROM circles")).rows;
+    const reports = (await pool.query("SELECT * FROM circle_reports")).rows;
+    const interest = (await pool.query("SELECT * FROM interest")).rows;
+    const audits = (await pool.query("SELECT * FROM audit_log ORDER BY id")).rows;
+    const payload = { exported_at: new Date().toISOString(), users, tasks, tasks_done: done, proofs, messages, circles, circle_reports: reports, interest, audit_log: audits };
+    res.set('Content-Type', 'application/json');
+    res.set('Content-Disposition', 'attachment; filename="lotus-backup-' + todayKey() + '.json"');
+    res.send(JSON.stringify(payload));
+    await audit(req.user, 'admin.backup', 'all', users.length + ' users');
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // ===== MESSAGING (community chat + direct messages) =====
 
@@ -980,6 +1155,9 @@ app.get('/api/messages/partners', requireAuth, async (req, res) => {
 });
 
 // ===== START =====
+process.on('unhandledRejection', function (e) { console.error('Unhandled rejection:', e); recordError('unhandledRejection', e); });
+process.on('uncaughtException', function (e) { console.error('Uncaught exception:', e); recordError('uncaughtException', e); });
+
 initDb().then(() => {
   app.listen(PORT, () => {
     console.log('==============================================');

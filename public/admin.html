@@ -134,6 +134,7 @@ footer p{font-size:.8rem;color:var(--muted)}
     <button class="tab" data-tab="evidence" onclick="switchTab('evidence')">Evidence <span class="count zero" id="tabEvidenceCount">0</span></button>
     <button class="tab" data-tab="tasks" onclick="switchTab('tasks')">Tasks</button>
     <button class="tab" data-tab="circles" onclick="switchTab('circles')">Circles</button>
+    <button class="tab" data-tab="system" onclick="switchTab('system')">System</button>
   </div>
 
   <!-- MEMBERS -->
@@ -171,6 +172,32 @@ footer p{font-size:.8rem;color:var(--muted)}
       </div>
     </div>
     <div id="taskList"></div>
+  </div>
+
+  <!-- SYSTEM -->
+  <div id="pane-system" class="tabpane">
+    <p class="helper">Security, records and rescue. Everything here is for your eyes only.</p>
+
+    <div class="card" style="margin-bottom:1.2rem">
+      <div class="card-label">Two-factor sign-in</div>
+      <div id="twofaBox"><p style="color:var(--muted);font-size:.9rem">Checking...</p></div>
+    </div>
+
+    <div class="card" style="margin-bottom:1.2rem">
+      <div class="card-label">Download a backup</div>
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:.8rem">A single JSON file with members, practices, submissions, messages and circles. No passwords, no photographs. Keep it somewhere you trust.</p>
+      <button class="btn" onclick="downloadBackup()">Download backup</button>
+    </div>
+
+    <div class="card" style="margin-bottom:1.2rem">
+      <div class="card-label">Recent actions</div>
+      <div id="auditList" style="margin-top:.6rem"><p style="color:var(--muted);font-size:.9rem">Loading...</p></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Errors</div>
+      <div id="errorList" style="margin-top:.6rem"><p style="color:var(--muted);font-size:.9rem">Loading...</p></div>
+    </div>
   </div>
 
   <!-- CIRCLES -->
@@ -224,6 +251,7 @@ function switchTab(name){
   var pane=document.getElementById('pane-'+name);
   if(pane) pane.classList.add('active');
   if(name==='evidence') loadEvidence();
+  if(name==='system') loadSystem();
 }
 
 // ---- Evidence, grouped per member ----
@@ -322,6 +350,83 @@ function reviewProof(id, action){
 function closeProofModal(){
   document.getElementById('proofModal').classList.remove('open');
   modalUserId=null;
+}
+
+function loadSystem(){
+  load2fa(); loadAudit(); loadErrors();
+}
+function load2fa(){
+  api('/api/admin/2fa/status').then(function(res){
+    var box=document.getElementById('twofaBox');
+    if(!res.ok){ box.innerHTML='<p style="color:var(--muted)">Could not read the setting.</p>'; return; }
+    if(res.d.enabled){
+      box.innerHTML='<p style="font-size:.92rem;margin-bottom:.6rem"><strong style="color:var(--green)">On.</strong> A six-digit code is required when you sign in.</p>'+
+        '<div style="display:flex;gap:.5rem;flex-wrap:wrap"><input id="pwd2fa" type="password" placeholder="Your password" style="padding:.6rem .8rem;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--text);border-radius:2px">'+
+        '<button class="btn-sm danger" onclick="disable2fa()">Turn off</button></div>';
+      return;
+    }
+    box.innerHTML='<p style="color:var(--muted);font-size:.9rem;margin-bottom:.7rem">Off. A stolen password would be enough to take this panel. Turn it on — it takes two minutes.</p>'+
+      '<button class="btn" onclick="start2fa()">Set up two-factor</button><div id="twofaSetup" style="margin-top:1rem"></div>';
+  });
+}
+function start2fa(){
+  api('/api/admin/2fa/setup',{method:'POST',body:'{}'}).then(function(res){
+    if(!res.ok){ alert(res.d.error||'Could not start.'); return; }
+    var box=document.getElementById('twofaSetup');
+    box.innerHTML='<p style="font-size:.9rem;margin-bottom:.5rem">1. In Google Authenticator, Authy or 1Password choose "Add account" then "Enter a setup key".</p>'+
+      '<p style="font-size:.9rem;margin-bottom:.5rem">Account: <strong>The Lotus Cross</strong> · Key type: <strong>Time based</strong></p>'+
+      '<div style="font-family:monospace;font-size:1rem;background:rgba(0,0,0,.35);border:1px solid var(--border);padding:.7rem;border-radius:4px;margin-bottom:.7rem;letter-spacing:1.5px;word-break:break-all">'+res.d.secret+'</div>'+
+      '<p style="font-size:.9rem;margin-bottom:.5rem">2. Enter the six-digit code it shows:</p>'+
+      '<div style="display:flex;gap:.5rem"><input id="twofaCode" maxlength="6" placeholder="123456" style="padding:.6rem .8rem;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--text);border-radius:2px;letter-spacing:3px;width:130px">'+
+      '<button class="btn-sm" onclick="enable2fa()">Turn on</button></div>';
+  });
+}
+function enable2fa(){
+  api('/api/admin/2fa/enable',{method:'POST',body:JSON.stringify({code:document.getElementById('twofaCode').value})}).then(function(res){
+    if(res.ok){ load2fa(); } else { alert(res.d.error||'Invalid code.'); }
+  });
+}
+function disable2fa(){
+  api('/api/admin/2fa/disable',{method:'POST',body:JSON.stringify({password:document.getElementById('pwd2fa').value})}).then(function(res){
+    if(res.ok){ load2fa(); } else { alert(res.d.error||'Could not turn it off.'); }
+  });
+}
+function downloadBackup(){
+  fetch('/api/admin/backup',{headers:{'Authorization':'Bearer '+getToken()}})
+    .then(function(r){ if(!r.ok) throw new Error('failed'); return r.blob(); })
+    .then(function(b){
+      var a=document.createElement('a'); a.href=URL.createObjectURL(b);
+      a.download='lotus-backup-'+new Date().toISOString().slice(0,10)+'.json';
+      document.body.appendChild(a); a.click(); a.remove();
+    }).catch(function(){ alert('Could not download the backup.'); });
+}
+function loadAudit(){
+  api('/api/admin/audit').then(function(res){
+    var box=document.getElementById('auditList');
+    if(!res.ok){ box.innerHTML='<p style="color:var(--muted)">Could not load.</p>'; return; }
+    var e=res.d.entries||[];
+    if(!e.length){ box.innerHTML='<p style="color:var(--muted);font-size:.9rem">Nothing yet.</p>'; return; }
+    box.innerHTML=e.map(function(x){
+      return '<div style="display:flex;gap:.7rem;font-size:.85rem;padding:.35rem 0;border-bottom:1px solid var(--border)">'+
+        '<span style="color:var(--muted);min-width:9.5rem">'+new Date(x.created_at).toLocaleString('en-GB')+'</span>'+
+        '<span style="color:var(--gold)">'+x.action+'</span>'+
+        '<span style="color:var(--muted);flex:1">'+x.target+(x.meta?' — '+x.meta:'')+'</span></div>';
+    }).join('');
+  });
+}
+function loadErrors(){
+  api('/api/admin/errors').then(function(res){
+    var box=document.getElementById('errorList');
+    if(!res.ok){ box.innerHTML='<p style="color:var(--muted)">Could not load.</p>'; return; }
+    var e=res.d.errors||[];
+    if(!e.length){ box.innerHTML='<p style="color:var(--muted);font-size:.9rem">No errors recorded. Good.</p>'; return; }
+    box.innerHTML='<p style="font-size:.85rem;color:var(--muted);margin-bottom:.6rem">'+res.d.last7days+' in the last seven days</p>'+
+      e.map(function(x){
+        return '<div style="font-size:.82rem;padding:.35rem 0;border-bottom:1px solid var(--border)">'+
+          '<span style="color:var(--muted)">'+new Date(x.created_at).toLocaleString("en-GB")+'</span> · '+
+          '<span style="color:var(--red)">'+x.where_+'</span> · '+x.message+'</div>';
+      }).join('');
+  });
 }
 
 function loadUsers(){
