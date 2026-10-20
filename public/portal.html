@@ -231,6 +231,18 @@ a{color:var(--gold-deep);text-decoration:none}
   #lightbox img{max-width:96vw}
 }
 
+.theme-card{position:relative;background:#17150f;color:#f3ecdd;border-radius:18px;padding:1.5rem 1.7rem;margin:1.5rem 0 0;overflow:hidden;box-shadow:0 18px 44px rgba(30,22,8,.18)}
+.theme-card:before{content:'';position:absolute;inset:0;background:radial-gradient(120% 90% at 80% -10%,rgba(201,162,39,.20),transparent 60%);pointer-events:none}
+.theme-card .theme-top{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;margin-bottom:.7rem}
+.theme-card .theme-kicker{font-size:.66rem;letter-spacing:2.4px;text-transform:uppercase;color:#e0c98a}
+.theme-card .theme-timer{font-size:.7rem;color:rgba(243,236,221,.45);font-variant-numeric:tabular-nums;white-space:nowrap}
+.theme-card blockquote{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.32rem;line-height:1.5;color:#f7f1e3;margin:0}
+.theme-card .theme-foot{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-top:1rem;flex-wrap:wrap}
+.theme-card cite{font-style:normal;font-size:.76rem;color:rgba(243,236,221,.5)}
+.theme-card .theme-play{background:transparent;border:1px solid rgba(224,201,138,.5);color:#e8d3a3;border-radius:999px;padding:.42rem .95rem;font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .25s}
+.theme-card .theme-play:hover{background:#c9a227;color:#17150f;border-color:#c9a227;transform:translateY(-1px)}
+.theme-card.fade blockquote{opacity:.25;transition:opacity .35s}
+.theme-card.playing .theme-play{background:#c9a227;color:#17150f}
 .sidebar .policy-link{display:block;text-align:center;font-size:.7rem;letter-spacing:.6px;color:var(--muted);text-decoration:none;opacity:.75;padding:.6rem 0 0;transition:opacity .2s,color .2s}
 .sidebar .policy-link:hover{opacity:1;color:var(--gold-deep)}
 #barHint{display:none}
@@ -302,6 +314,18 @@ a{color:var(--gold-deep);text-decoration:none}
             <p class="dash-sub" id="dashMeta" style="margin-bottom:0"></p>
           </div>
           <button onclick="logout()" title="Sign out" style="background:none;border:1px solid var(--line);border-radius:999px;padding:.5rem 1rem;font-size:.78rem;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap">Sign out</button>
+        </div>
+
+        <div class="theme-card" id="themeCard">
+          <div class="theme-top">
+            <span class="theme-kicker" id="themeLabel">The word for this half hour</span>
+            <span class="theme-timer" id="themeTimer"></span>
+          </div>
+          <blockquote id="themeQuote">Whatever you are carrying, put it down for four minutes.</blockquote>
+          <div class="theme-foot">
+            <cite id="themeSource">&nbsp;</cite>
+            <button class="theme-play" id="themePlay" onclick="playThemeQuote()" aria-label="Listen">▶ Listen</button>
+          </div>
         </div>
 
         <div class="quote-card" id="challengeCard" style="display:none;margin:1.6rem 0 0"></div>
@@ -758,6 +782,7 @@ function loadDashboard(){
       document.getElementById('dashQuoteSrc').textContent = QUOTES[day].src;
     }
     renderChallenge(res.d.challenge);
+    if(res.d.quote){ renderThemeQuote(Object.assign({}, res.d.quote, { audio: '/audio/quote/' + res.d.quote.theme + '_' + res.d.quote.index + '.mp3' })); }
     applyPlan(res.d.features);
     var b = res.d.brought || {total:0, approved:0};
     var inv = document.getElementById('inviteLine');
@@ -1045,6 +1070,66 @@ function sendMsg(){
 function startChatPolling(){ stopChatPolling(); chatPollTimer = setInterval(loadChannel,4000); }
 function stopChatPolling(){ if(chatPollTimer){ clearInterval(chatPollTimer); chatPollTimer=null; } }
 
+var themeAudio = null;
+function themeTimeLeft(){
+  var el = document.getElementById('themeTimer');
+  if(!el || !window.__nextQuoteAt) return;
+  var s = Math.max(0, Math.round((window.__nextQuoteAt - Date.now()) / 1000));
+  var m = Math.floor(s / 60), sec = s % 60;
+  el.textContent = 'changes in ' + m + ':' + (sec < 10 ? '0' + sec : sec);
+  if(s === 0) loadThemeQuote();
+}
+function renderThemeQuote(q){
+  if(!q) return;
+  var card = document.getElementById('themeCard');
+  document.getElementById('themeLabel').textContent = q.label + ' · the word for this half hour';
+  document.getElementById('themeQuote').textContent = q.text;
+  document.getElementById('themeSource').textContent = '— ' + q.source;
+  window.__quoteAudio = q.audio || '';
+  window.__nextQuoteAt = q.nextChange || (Date.now() + 1800000);
+  themeTimeLeft();
+}
+function loadThemeQuote(){
+  var card = document.getElementById('themeCard');
+  fetch('/api/quote').then(function(r){ return r.json(); }).then(function(d){
+    if(!d.ok) return;
+    if(card){ card.classList.add('fade'); }
+    setTimeout(function(){
+      renderThemeQuote(Object.assign({}, d.quote, { audio: d.audio }));
+      if(card){ card.classList.remove('fade'); }
+    }, 260);
+  }).catch(function(){});
+}
+function playThemeQuote(){
+  var card = document.getElementById('themeCard');
+  var btn = document.getElementById('themePlay');
+  if(themeAudio){ themeAudio.pause(); themeAudio = null; if(card) card.classList.remove('playing'); btn.textContent = '▶ Listen'; return; }
+  var src = window.__quoteAudio;
+  var spoken = false;
+  if(src && 'speechSynthesis' in window === false){ /* handled below */ }
+  if(src){
+    themeAudio = new Audio(src);
+    themeAudio.onended = function(){ themeAudio = null; if(card) card.classList.remove('playing'); btn.textContent = '▶ Listen'; };
+    themeAudio.onerror = function(){ themeAudio = null; speakThemeQuote(); };
+    themeAudio.play().then(function(){ if(card) card.classList.add('playing'); btn.textContent = '■ Stop'; }).catch(function(){ themeAudio = null; speakThemeQuote(); });
+  } else {
+    speakThemeQuote();
+  }
+}
+function speakThemeQuote(){
+  if(!('speechSynthesis' in window)) return;
+  var card = document.getElementById('themeCard');
+  var btn = document.getElementById('themePlay');
+  var text = document.getElementById('themeQuote').textContent;
+  speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-GB'; u.rate = 0.9; u.pitch = 0.95;
+  u.onend = function(){ if(card) card.classList.remove('playing'); btn.textContent = '▶ Listen'; };
+  if(card) card.classList.add('playing');
+  btn.textContent = '■ Stop';
+  speechSynthesis.speak(u);
+}
+
 function maybeBarHint(){
   try{
     if(window.innerWidth > 600) return;
@@ -1072,6 +1157,8 @@ function enterPortal(){
 (function init(){
   if(token){ enterPortal(); }
   else { document.getElementById('loginScreen').style.display = 'flex'; }
+  setInterval(themeTimeLeft, 1000);
+  setTimeout(loadThemeQuote, 30000);
   var lo = document.getElementById('logoutBtn');
   if(lo) lo.addEventListener('click', logout);
   document.querySelectorAll('.side-btn').forEach(function(b){

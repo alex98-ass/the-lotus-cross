@@ -3,7 +3,7 @@
 // Strategy: network-first for pages and data (so nothing is ever stale),
 // cache-first for the shell (icons, fonts, legal pages, offline page).
 
-const VERSION = 'lotus-v13';
+const VERSION = 'lotus-v14';
 const SHELL = [
   '/offline.html',
   '/legal.css',

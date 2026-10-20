@@ -11,6 +11,7 @@ const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const REFLECTIONS = require('./reflections');
 const PRACTICES = require('./practices');
+const quotes = require('./quotes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -442,6 +443,15 @@ function calcRank(tasks) {
 }
 
 // ===== PUBLIC API =====
+app.get('/api/quote', (req, res) => {
+  try {
+    const q = quotes.current(new Date());
+    res.json({ ok: true, quote: q, audio: '/audio/quote/' + q.theme + '_' + q.index + '.mp3' });
+  } catch (e) {
+    res.status(500).json({ error: 'Quote unavailable' });
+  }
+});
+
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.post('/api/enroll', rateLimit(5, 60 * 60 * 1000), async (req, res) => {
@@ -580,7 +590,8 @@ app.get('/api/member/dashboard', requireAuth, async (req, res) => {
       referral_code: u.referral_code },
     ranks: RANKS, tasks: visibleTasks, doneToday: done.rows.map(r => r.task_id), today,
     proofsToday: proofsToday, reflection: reflection, circle: circle, brought: brought, challenge: challenge,
-    tier: u.tier || 'free', tierLifetime: !!u.tier_lifetime, tiers: TIERS, features: entitlementsFor(u)
+    tier: u.tier || 'free', tierLifetime: !!u.tier_lifetime, tiers: TIERS, features: entitlementsFor(u),
+    quote: quotes.current(new Date())
   });
 });
 
