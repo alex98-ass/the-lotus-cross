@@ -203,6 +203,7 @@ a{color:var(--gold-deep);text-decoration:none}
       <button class="side-btn active" data-tab="dashboard"><span class="ico">🏛️</span><span class="txt">Dashboard</span></button>
       <button class="side-btn" data-tab="tasks"><span class="ico">🧘</span><span class="txt">Daily Tasks</span></button>
       <button class="side-btn" data-tab="community"><span class="ico">💬</span><span class="txt">Community</span></button>
+      <button class="side-btn" data-tab="circle"><span class="ico">🪷</span><span class="txt">My Circle</span></button>
       <button class="side-btn" data-tab="support"><span class="ico">💎</span><span class="txt">Support Us</span></button>
       <div class="spacer"></div>
       <button class="logout" id="logoutBtn"><span class="ico">⎋</span><span class="txt">Sign Out</span></button>
@@ -254,6 +255,13 @@ a{color:var(--gold-deep);text-decoration:none}
             </div>
           </div>
         </div>
+      </section>
+
+      <!-- MY CIRCLE -->
+      <section id="view-circle" class="view">
+        <div class="tasks-head">My Circle</div>
+        <p class="tasks-sub" id="circleSub">A circle is a local gathering you lead in the name of The Lotus Cross.</p>
+        <div id="circleBody"></div>
       </section>
 
       <!-- SUPPORT -->
@@ -384,6 +392,96 @@ function switchTab(tab){
   if(tab === 'tasks') loadTasks();
   if(tab === 'community'){ loadChannel(); startChatPolling(); }
   else stopChatPolling();
+  if(tab === 'circle') loadCircle();
+}
+
+// ===== MY CIRCLE (rank 5 Stewards) =====
+function money(p){ return '£' + (Number(p||0)/100).toFixed(2); }
+function loadCircle(){
+  var body = document.getElementById('circleBody');
+  body.innerHTML = '<p style="color:var(--muted)">Loading…</p>';
+  api('/api/member/circle').then(function(res){
+    if(!res.ok){ body.innerHTML = '<p style="color:var(--muted)">Could not load your circle.</p>'; return; }
+    var d = res.d, c = d.circle;
+    if(!d.eligible){
+      var need = 1200;
+      api('/api/member/dashboard').then(function(r2){
+        var done = (r2.ok && r2.d.user) ? r2.d.user.tasks_completed : 0;
+        var pct = Math.min(100, Math.round(done/need*100));
+        body.innerHTML =
+          '<div class="quote-card">' +
+          '<div class="q-label">Not yet a Steward</div>' +
+          '<blockquote>A circle is opened by a Steward — someone who has walked with the community long enough to be trusted with others.</blockquote>' +
+          '<p style="color:var(--muted);margin-top:1rem">You have completed <strong>' + done + '</strong> of <strong>' + need + '</strong> practices (' + pct + '%).</p>' +
+          '<div style="height:8px;background:var(--bg);border-radius:4px;margin-top:.7rem;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:var(--gold)"></div></div>' +
+          '</div>';
+      });
+      return;
+    }
+    if(!c){
+      body.innerHTML =
+        '<div class="quote-card">' +
+        '<div class="q-label">Open a circle</div>' +
+        '<blockquote>You keep 75% of what your circle receives for its teaching and service. 25% is remitted to the mother community.</blockquote>' +
+        '<p style="color:var(--muted);margin:.8rem 0 1.2rem;font-size:.9rem">A circle charges for something real — a weekly gathering, a study group, a retreat. It does not collect donations on our behalf, and no one is promised income.</p>' +
+        '<input id="cName" placeholder="Circle name (e.g. The Brighton Lotus Circle)" style="width:100%;margin-bottom:.6rem">' +
+        '<input id="cCity" placeholder="Town / city" style="width:100%;margin-bottom:.6rem">' +
+        '<input id="cCountry" placeholder="Country" style="width:100%;margin-bottom:1rem">' +
+        '<button class="cta-btn" onclick="createCircle()" style="border:none;cursor:pointer">Open my circle →</button>' +
+        '<p id="circleMsg" style="margin-top:.8rem;font-size:.9rem"></p>' +
+        '</div>';
+      return;
+    }
+    var thisMonth = new Date().toISOString().slice(0,7);
+    var rows = (d.reports||[]).map(function(r){
+      return '<tr><td>' + r.period + '</td><td>' + money(r.gross_pence) + '</td><td>' + money(r.remit_pence) + '</td><td>' + money(r.gross_pence - r.remit_pence) + '</td></tr>';
+    }).join('');
+    var totalRemit = (d.reports||[]).reduce(function(a,r){ return a + Number(r.remit_pence||0); }, 0);
+    body.innerHTML =
+      '<div class="quote-card" style="margin-bottom:1.5rem">' +
+      '<div class="q-label">' + c.name + (c.city ? ' · ' + c.city : '') + '</div>' +
+      '<blockquote>Steward since ' + new Date(c.created_at).toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'}) + '. You retain ' + (100 - c.remit_pct) + '%, and ' + c.remit_pct + '% is remitted to the mother community.</blockquote>' +
+      '<p style="color:var(--muted);margin-top:.8rem">Total remitted so far: <strong>' + money(totalRemit) + '</strong></p>' +
+      '</div>' +
+      '<div class="quote-card" style="margin-bottom:1.5rem">' +
+      '<div class="q-label">Declare a month</div>' +
+      '<p style="color:var(--muted);font-size:.9rem;margin-bottom:.8rem">Enter what the circle received for its teaching and service. Nothing else is asked of you.</p>' +
+      '<div style="display:flex;gap:.6rem;flex-wrap:wrap">' +
+      '<input id="rPeriod" value="' + thisMonth + '" placeholder="YYYY-MM" style="flex:1;min-width:110px">' +
+      '<input id="rGross" type="number" step="0.01" min="0" placeholder="Amount received (£)" style="flex:1;min-width:140px">' +
+      '<input id="rNote" placeholder="Note (optional)" style="flex:2;min-width:140px">' +
+      '</div>' +
+      '<button class="cta-btn" onclick="reportCircle()" style="border:none;cursor:pointer;margin-top:.9rem">Declare</button>' +
+      '<p id="circleMsg" style="margin-top:.8rem;font-size:.9rem"></p>' +
+      '</div>' +
+      '<div class="quote-card">' +
+      '<div class="q-label">Declarations</div>' +
+      (rows ? '<table style="width:100%;border-collapse:collapse;font-size:.9rem"><thead><tr style="color:var(--muted);text-align:left"><th style="padding:.4rem 0">Month</th><th>Received</th><th>Remitted</th><th>Kept</th></tr></thead><tbody>' + rows + '</tbody></table>' : '<p style="color:var(--muted);font-size:.9rem">No declarations yet.</p>') +
+      '</div>';
+  });
+}
+function createCircle(){
+  var name = document.getElementById('cName').value.trim();
+  if(!name){ document.getElementById('circleMsg').textContent = 'Give your circle a name.'; return; }
+  api('/api/member/circle',{method:'POST',body:JSON.stringify({
+    name:name,
+    city:document.getElementById('cCity').value.trim(),
+    country:document.getElementById('cCountry').value.trim()
+  })}).then(function(res){
+    if(res.ok){ loadCircle(); }
+    else { document.getElementById('circleMsg').textContent = res.d.error || 'Could not open the circle.'; }
+  });
+}
+function reportCircle(){
+  var m = document.getElementById('circleMsg');
+  api('/api/member/circle/report',{method:'POST',body:JSON.stringify({
+    period:document.getElementById('rPeriod').value.trim(),
+    gross:document.getElementById('rGross').value,
+    note:document.getElementById('rNote').value.trim()
+  })}).then(function(res){
+    if(res.ok){ loadCircle(); }
+    else { m.textContent = res.d.error || 'Could not save.'; }
+  });
 }
 
 // ===== DASHBOARD =====

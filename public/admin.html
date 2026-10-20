@@ -132,6 +132,10 @@ footer p{font-size:.8rem;color:var(--muted)}
     </div>
   </div>
   <div id="taskList"></div>
+
+  <div class="section-title">Manage <span style="color:var(--gold)">Circles</span></div>
+  <p style="color:var(--muted);font-size:.9rem;margin-bottom:1rem">Circles are led by Stewards (rank 5). Each remits 25% of what it receives for teaching and service; the Steward keeps 75%.</p>
+  <div id="circleList"></div>
 </div>
 
 <footer>
@@ -156,6 +160,7 @@ function init(){
   document.getElementById('adminMain').style.display='block';
   loadUsers();
   loadTasks();
+  loadCircles();
 }
 
 function loadUsers(){
@@ -248,6 +253,23 @@ function setRank(userId,rank){
     if(ok)loadUsers();
   });
 }
+function loadCircles(){
+  api('/api/admin/circles').then(function(res){
+    var box=document.getElementById('circleList');
+    if(!res.ok){ box.innerHTML='<p style="color:var(--muted)">Could not load circles.</p>'; return; }
+    var cs=res.d.circles||[];
+    if(!cs.length){ box.innerHTML='<p style="color:var(--muted);font-size:.9rem">No circles yet. A member must reach Steward (rank 5) and open one from the portal.</p>'; return; }
+    box.innerHTML=cs.map(function(c){
+      var remit=(Number(c.total_remit||0)/100).toFixed(2);
+      return '<div class="card" style="margin-bottom:.8rem">'+
+        '<div class="card-label">'+c.name+(c.city?' · '+c.city:'')+'</div>'+
+        '<p style="color:var(--muted);font-size:.9rem">Steward: <strong>'+c.steward_name+'</strong> ('+c.steward_email+')</p>'+
+        '<p style="color:var(--muted);font-size:.9rem">Remit: '+c.remit_pct+'% · Collected for the community: <strong>£'+remit+'</strong> · Opened '+new Date(c.created_at).toLocaleDateString('en-GB')+'</p>'+
+        '</div>';
+    }).join('');
+  });
+}
+
 function loadTasks(){
   api('/api/admin/tasks').then(function({ok,d}){
     if(!ok)return;
