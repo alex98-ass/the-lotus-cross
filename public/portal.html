@@ -263,7 +263,7 @@ a{color:var(--gold-deep);text-decoration:none}
       <!-- DAILY TASKS -->
       <section id="view-tasks" class="view">
         <div class="tasks-head">Daily Tasks</div>
-        <p class="tasks-sub">Check each task as you complete it. Each one earns <strong>+20 XP</strong> and builds your streak.</p>
+        <p class="tasks-sub">Three kinds, one day: something inward, something outward, and something from your plan.</p>
         <input type="file" id="proofFile" accept="image/*" capture="environment" style="display:none" onchange="submitProofFile(this.files[0])">
         <div id="taskList"></div>
         <div class="all-done" id="allTasksDone">✦ You've completed all of today's tasks. Return tomorrow.<br><span style="font-size:.9rem;color:var(--muted);font-style:normal">The path is walked one day at a time.</span></div>
@@ -829,39 +829,63 @@ function proofStateFor(taskId){
   (proofsToday||[]).forEach(function(p){ if(String(p.task_id)===String(taskId)) s = p; });
   return s;
 }
+function taskCard(t){
+  var isDone = doneToday.indexOf(String(t.id)) !== -1;
+  var xpVal = t.xp || 20;
+  if(t.requires_proof){
+    var pr = proofStateFor(t.id);
+    var badge = '', action = '';
+    if(isDone){ badge = '<span style="color:#2f6b3a;font-size:.78rem;font-weight:600">✓ accepted</span>'; }
+    else if(pr && pr.status==='pending'){ badge = '<span style="color:var(--gold-deep);font-size:.78rem;font-weight:600">⏳ awaiting review</span>'; }
+    else if(pr && pr.status==='rejected'){ badge = '<span style="color:#a33;font-size:.78rem;font-weight:600">✕ declined — try again tomorrow</span>'; }
+    else { action = '<button class="cta-btn" style="border:none;cursor:pointer;padding:.5rem 1rem;font-size:.8rem" onclick="pickProof('+t.id+')">Add photograph</button>'; }
+    return '<div class="task-card'+(isDone?' done':'')+'">'+
+      '<div class="task-check'+(isDone?' checked':'')+'"></div>'+
+      '<div class="task-body"><div class="task-title">'+(t.title||'Practice')+'</div>'+
+      '<div class="task-desc">'+(t.description||'')+'</div>'+
+      (t.proof_hint ? '<div class="task-desc" style="font-style:italic;opacity:.8">'+t.proof_hint+'</div>' : '')+
+      '<div class="task-xp">+'+xpVal+' XP</div>'+
+      '<div style="margin-top:.7rem">'+badge+' '+action+'</div>'+
+      '</div></div>';
+  }
+  return '<div class="task-card'+(isDone?' done':'')+'" onclick="toggleTask('+t.id+')">'+
+    '<div class="task-check'+(isDone?' checked':'')+'"></div>'+
+    '<div class="task-body"><div class="task-title">'+(t.title||'Task')+'</div>'+
+    '<div class="task-desc">'+(t.description||'')+'</div>'+
+    '<div class="task-xp">+'+xpVal+' XP</div></div></div>';
+}
+
+function sectionLabel(text, note){
+  return '<div style="margin:1.8rem 0 .7rem;display:flex;justify-content:space-between;align-items:baseline;gap:.8rem;border-bottom:1px solid var(--line);padding-bottom:.4rem">' +
+    '<span style="font-size:.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold-deep);font-weight:600">' + text + '</span>' +
+    '<span style="font-size:.74rem;color:var(--muted)">' + note + '</span></div>';
+}
+
 function renderTasks(){
   var list = document.getElementById('taskList');
-  var allDone = true;
+  var inward = currentTasks.filter(function(t){ return !t.requires_proof; });
+  var outward = currentTasks.filter(function(t){ return t.requires_proof && (!t.tier_required || t.tier_required === 'free'); });
+  var plan = currentTasks.filter(function(t){ return t.tier_required && t.tier_required !== 'free'; });
+
   var html = '';
-  currentTasks.forEach(function(t){
-    var isDone = doneToday.indexOf(String(t.id)) !== -1;
-    if(!isDone) allDone = false;
-    var xpVal = t.xp || 20;
-    if(t.requires_proof){
-      var pr = proofStateFor(t.id);
-      var badge = '', action = '';
-      if(isDone){ badge = '<span style="color:#2f6b3a;font-size:.78rem;font-weight:600">✓ accepted</span>'; }
-      else if(pr && pr.status==='pending'){ badge = '<span style="color:var(--gold-deep);font-size:.78rem;font-weight:600">⏳ awaiting review</span>'; }
-      else if(pr && pr.status==='rejected'){ badge = '<span style="color:#a33;font-size:.78rem;font-weight:600">✕ declined — try again tomorrow</span>'; }
-      else { action = '<button class="cta-btn" style="border:none;cursor:pointer;padding:.5rem 1rem;font-size:.8rem" onclick="pickProof('+t.id+')">Add photograph</button>'; }
-      html += '<div class="task-card'+(isDone?' done':'')+'">'+
-        '<div class="task-check'+(isDone?' checked':'')+'"></div>'+
-        '<div class="task-body"><div class="task-title">'+(t.title||'Practice')+'</div>'+
-        '<div class="task-desc">'+(t.description||'')+'</div>'+
-        (t.proof_hint ? '<div class="task-desc" style="font-style:italic;opacity:.8">'+t.proof_hint+'</div>' : '')+
-        '<div class="task-xp">+'+xpVal+' XP</div>'+
-        '<div style="margin-top:.7rem">'+badge+' '+action+'</div>'+
-        '</div></div>';
-    } else {
-      html += '<div class="task-card'+(isDone?' done':'')+'" onclick="toggleTask('+t.id+')">'+
-        '<div class="task-check'+(isDone?' checked':'')+'"></div>'+
-        '<div class="task-body"><div class="task-title">'+(t.title||t.task||'Task')+'</div>'+
-        '<div class="task-desc">'+(t.description||t.desc||'')+'</div>'+
-        '<div class="task-xp">+'+xpVal+' XP</div></div></div>';
-    }
-  });
+  if(inward.length){
+    html += sectionLabel('Inward', inward.length + (inward.length === 1 ? ' practice' : ' practices'));
+    html += inward.map(taskCard).join('');
+  }
+  if(outward.length){
+    html += sectionLabel('Outward', 'a photograph each');
+    html += outward.map(taskCard).join('');
+  }
+  if(plan.length){
+    html += sectionLabel('From your plan', 'included in what you pay for');
+    html += plan.map(taskCard).join('');
+  }
+
   list.innerHTML = html;
-  document.getElementById('allTasksDone').style.display = allDone ? 'block':'none';
+
+  var total = currentTasks.length;
+  var done = currentTasks.filter(function(t){ return doneToday.indexOf(String(t.id)) !== -1; }).length;
+  document.getElementById('allTasksDone').style.display = (total > 0 && done === total) ? 'block' : 'none';
 }
 
 // Photograph evidence — resized in the browser before upload (keeps the cost sane)

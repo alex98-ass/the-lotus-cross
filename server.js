@@ -141,6 +141,7 @@ async function initDb() {
     created_at TIMESTAMPTZ DEFAULT now())`);
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_demo BOOLEAN DEFAULT false");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS tier TEXT DEFAULT 'free'");
+  await pool.query("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS tier_required TEXT DEFAULT 'free'");
   await pool.query(`CREATE TABLE IF NOT EXISTS live_sessions (
     id SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
@@ -208,12 +209,17 @@ async function initDb() {
     const exists = await pool.query("SELECT 1 FROM tasks WHERE title=$1 LIMIT 1", [p.title]);
     if (exists.rowCount === 0) {
       await pool.query(
-        "INSERT INTO tasks (title, description, category, xp, sort_order, min_count, requires_proof, proof_hint) VALUES ($1,$2,$3,$4,$5,$6,true,$7)",
-        [p.title, p.desc, 'service', p.xp, 10 + i, p.min, p.hint]);
+        "INSERT INTO tasks (title, description, category, xp, sort_order, min_count, requires_proof, proof_hint, tier_required) VALUES ($1,$2,$3,$4,$5,$6,true,$7,$8)",
+        [p.title, p.desc, 'service', p.xp, 10 + i, p.min, p.hint, p.tier || 'free']);
       added++;
     }
   }
   if (added) console.log('  Practices added to the ladder: ' + added);
+  for (let i = 0; i < PRACTICES.length; i++) {
+    const p = PRACTICES[i];
+    await pool.query("UPDATE tasks SET tier_required=$1, min_count=$2 WHERE title=$3 AND requires_proof=true",
+      [p.tier || 'free', p.min, p.title]);
+  }
   await loadEmailConfig();
   // Seed/refresh daily reflections — upsert so new entries extend the cycle
   for (let i = 0; i < REFLECTIONS.length; i++) {
@@ -557,8 +563,9 @@ app.get('/api/member/dashboard', requireAuth, async (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   const done = await pool.query("SELECT task_id FROM tasks_done WHERE user_id=$1 AND date=$2", [u.id, today]);
   const tasks = (await pool.query(
-    "SELECT id, title, description, category, xp, min_count, requires_proof, proof_hint FROM tasks WHERE active=true AND COALESCE(min_count,0) <= $1 ORDER BY COALESCE(min_count,0) DESC, sort_order, id LIMIT 12",
+    "SELECT id, title, description, category, xp, min_count, requires_proof, proof_hint, COALESCE(tier_required,'free') AS tier_required FROM tasks WHERE active=true AND COALESCE(min_count,0) <= $1 ORDER BY COALESCE(min_count,0), sort_order, id LIMIT 20",
     [u.tasks_completed || 0])).rows;
+  const visibleTasks = tasks.filter(t => !t.tier_required || t.tier_required === 'free' || entitled(u, t.tier_required));
   const proofsToday = (await pool.query(
     "SELECT task_id, status, id FROM proofs WHERE user_id=$1 AND date=$2 ORDER BY created_at DESC", [u.id, today])).rows;
   const reflection = await reflectionForToday();
@@ -570,7 +577,7 @@ app.get('/api/member/dashboard', requireAuth, async (req, res) => {
     user: { id: u.id, name: u.name, email: u.email, country: u.country, age: u.age, tradition: u.tradition,
       rank: u.rank, xp: u.xp, tasks_completed: u.tasks_completed, streak: u.streak, enrolled_at: u.enrolled_at,
       referral_code: u.referral_code },
-    ranks: RANKS, tasks: tasks, doneToday: done.rows.map(r => r.task_id), today,
+    ranks: RANKS, tasks: visibleTasks, doneToday: done.rows.map(r => r.task_id), today,
     proofsToday: proofsToday, reflection: reflection, circle: circle, brought: brought, challenge: challenge,
     tier: u.tier || 'free', tiers: TIERS, features: entitlementsFor(u)
   });
@@ -986,6 +993,9 @@ app.post('/api/member/proof', requireAuth, rateLimit(20, 60 * 60 * 1000), async 
     if (!task) return res.status(404).json({ error: 'Practice not found' });
     if (!task.requires_proof) return res.status(400).json({ error: 'This practice does not need a photograph' });
     if ((task.min_count || 0) > (u.tasks_completed || 0)) return res.status(403).json({ error: 'This practice is not yet unlocked for you' });
+    if (task.tier_required && task.tier_required !== 'free' && !entitled(u, task.tier_required)) {
+      return res.status(403).json({ error: 'This practice belongs to the ' + (task.tier_required === 'circle' ? 'Circle' : 'Supporter') + ' plan' });
+    }
     const today = todayKey();
     const dup = (await pool.query("SELECT id FROM proofs WHERE user_id=$1 AND task_id=$2 AND date=$3", [u.id, taskId, today])).rows[0];
     if (dup) return res.status(409).json({ error: 'You have already submitted evidence for this practice today' });
