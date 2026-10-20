@@ -16,24 +16,20 @@
       a.setAttribute('href', 'portal.html');
       a.setAttribute('title', 'Back to your account');
     });
-    // Any "Join" link in the menu becomes a way back into the account
-    document.querySelectorAll('nav .links a, .mobile-menu a').forEach(function (a) {
+    // Desktop menu: an invitation to join makes no sense here, so drop it
+    document.querySelectorAll('nav .links a').forEach(function (a) {
       var h = a.getAttribute('href') || '';
-      if (h.indexOf('enroll') !== -1 || /join/i.test(a.textContent)) {
+      if (h.indexOf('enroll') !== -1) { a.style.display = 'none'; }
+    });
+
+    // Mobile menu: turn Join into Dashboard instead of hiding it
+    document.querySelectorAll('.mobile-menu a').forEach(function (a) {
+      var h = a.getAttribute('href') || '';
+      if (h.indexOf('enroll') !== -1 || /^join/i.test(a.textContent.trim())) {
         a.textContent = 'Dashboard';
         a.setAttribute('href', 'portal.html');
       }
     });
-    // A quiet line so it is obvious you are still signed in
-    var nav = document.querySelector('nav .links');
-    if (nav && !document.getElementById('authNavBadge')) {
-      var badge = document.createElement('a');
-      badge.id = 'authNavBadge';
-      badge.href = 'portal.html';
-      badge.textContent = 'Signed in';
-      badge.style.cssText = 'font-size:.72rem;letter-spacing:.6px;text-transform:uppercase;color:#8a6a1f;opacity:.85';
-      nav.appendChild(badge);
-    }
   }
 
   // Verify the session before promising anything
