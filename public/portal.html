@@ -67,7 +67,9 @@ a{color:var(--gold-deep);text-decoration:none}
 
 @media(max-width:768px){
   .app{flex-direction:column}
-  .sidebar{flex-direction:row;width:100%;height:auto;padding:.8rem;border-right:none;border-bottom:1px solid var(--line);gap:.4rem}
+  .sidebar{flex-direction:row;width:100%;height:auto;padding:.8rem;border-right:none;border-bottom:1px solid var(--line);gap:.4rem;overflow-x:auto}
+  .sidebar .spacer{display:none}
+  .sidebar .side-btn,.sidebar .logout{min-width:0}
   .sidebar .brand{display:none}
   .sidebar .side-btn{flex-direction:column;gap:.2rem;font-size:.65rem;padding:.5rem;border-radius:10px;flex:1}
   .sidebar .side-btn .ico{font-size:1.1rem}
@@ -178,6 +180,11 @@ a{color:var(--gold-deep);text-decoration:none}
   .comm-layout{flex-direction:column;height:auto}
   .comm-side{width:100%;flex-direction:row;flex-wrap:wrap}
   .comm-main{min-height:60vh}
+}
+@media(max-width:560px){
+  .sidebar .side-btn .txt,.sidebar .logout .txt{display:none}
+  .sidebar .side-btn,.sidebar .logout{flex:1;padding:.55rem .2rem}
+  .sidebar .side-btn .ico,.sidebar .logout .ico{font-size:1.25rem}
 }
 </style>
 </head>
