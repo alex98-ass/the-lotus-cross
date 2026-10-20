@@ -184,8 +184,10 @@ a{color:var(--gold-deep);text-decoration:none}
 }
 
 @media(max-width:600px){
-  #portalScreen{height:auto;min-height:100vh;overflow:visible}
-  .app{flex-direction:column;height:auto;min-height:100vh}
+  html,body{-webkit-text-size-adjust:100%}
+  /* phones with a shrinking browser bar: 100dvh, never 100vh */
+  #portalScreen{height:auto;min-height:100vh;min-height:100dvh;overflow:visible}
+  .app{flex-direction:column;height:auto;min-height:100vh;min-height:100dvh}
 
   /* the sidebar becomes a thumb bar at the bottom */
   .sidebar{position:fixed;left:0;right:0;bottom:0;top:auto;width:100%;height:auto;
@@ -206,7 +208,7 @@ a{color:var(--gold-deep);text-decoration:none}
   .side-btn.active{background:linear-gradient(135deg,#f8eed2,#f0e0b6)}
   .side-btn::after{display:none}
 
-  .main{height:auto;min-height:100vh;padding:0 0 84px}
+  .main{height:auto;min-height:100vh;min-height:100dvh;padding:0 0 84px}
   .topbar{display:none}
   .content{padding:1.15rem 1rem 2rem;overflow:visible;flex:none}
 
