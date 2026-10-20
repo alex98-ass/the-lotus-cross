@@ -202,6 +202,7 @@ async function initDb() {
     }
     console.log('  Ladder of practices seeded (' + PRACTICES.length + ').');
   }
+  await loadEmailConfig();
   // Seed/refresh daily reflections — upsert so new entries extend the cycle
   for (let i = 0; i < REFLECTIONS.length; i++) {
     const r = REFLECTIONS[i];
@@ -245,19 +246,66 @@ if (!RESEND_API_KEY && process.env.SMTP_HOST) {
   console.log('SMTP email configured.');
 }
 
+// Live configuration, changeable from the admin panel — no redeploy, no domain required
+// if the provider verifies a single sender address (Brevo does).
+let emailCfg = {
+  provider: RESEND_API_KEY ? 'resend' : (transporter ? 'smtp' : 'none'),
+  from: EMAIL_FROM,
+  brevoKey: ''
+};
+
+async function loadEmailConfig() {
+  try {
+    const rows = (await pool.query("SELECT key, value FROM settings WHERE key IN ('email_provider','email_from','brevo_key')")).rows;
+    const map = {};
+    rows.forEach(function (r) { map[r.key] = r.value; });
+    if (map.email_provider) emailCfg.provider = map.email_provider;
+    if (map.email_from) emailCfg.from = map.email_from;
+    if (typeof map.brevo_key === 'string' && map.brevo_key) emailCfg.brevoKey = map.brevo_key;
+    console.log('Email config: provider=' + emailCfg.provider + ' from=' + emailCfg.from);
+  } catch (e) { console.error('email config load failed', e.message); }
+}
+
+function parseFrom(from) {
+  const m = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(from || '');
+  if (m) return { name: m[1] || 'The Lotus Cross', email: m[2] };
+  return { name: 'The Lotus Cross', email: String(from || '').trim() };
+}
+
 function sendEmail(to, subject, html) {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   const logLine = `\n[${new Date().toISOString()}] TO: ${to}\nSUBJECT: ${subject}\n${html.replace(/<[^>]+>/g, ' ')}\n${'='.repeat(60)}`;
   fs.appendFileSync(path.join(DATA_DIR, 'emails.log'), logLine);
 
-  if (RESEND_API_KEY) {
+  const cfg = emailCfg;
+
+  // Brevo: verifies a single sender address, so it works without owning a domain.
+  if (cfg.provider === 'brevo' && cfg.brevoKey) {
+    const sender = parseFrom(cfg.from);
+    return fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': cfg.brevoKey, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ sender: sender, to: [{ email: to }], subject: subject, htmlContent: html })
+    })
+      .then(async (r) => {
+        const body = await r.text();
+        if (r.ok) { console.log('Email sent via Brevo to', to); return { ok: true, via: 'brevo' }; }
+        console.log('Brevo failed:', r.status, body.slice(0, 300));
+        await recordError('email:' + to, new Error('Brevo ' + r.status + ' ' + body.slice(0, 300)));
+        return { ok: false, status: r.status, body: body.slice(0, 600), via: 'brevo' };
+      })
+      .catch(async (e) => {
+        console.log('Brevo error:', e.message);
+        await recordError('email:' + to, e);
+        return { ok: false, error: e.message, via: 'brevo' };
+      });
+  }
+
+  if (cfg.provider === 'resend' && RESEND_API_KEY) {
     return fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + RESEND_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, html })
+      headers: { 'Authorization': 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: cfg.from, to: [to], subject: subject, html: html })
     })
       .then(async (r) => {
         if (r.ok) { console.log('Email sent via Resend to', to); return { ok: true, via: 'resend' }; }
@@ -274,7 +322,7 @@ function sendEmail(to, subject, html) {
   }
 
   if (transporter) {
-    return transporter.sendMail({ from: EMAIL_FROM, to, subject, html })
+    return transporter.sendMail({ from: cfg.from, to: to, subject: subject, html: html })
       .then(() => { console.log('Email sent to', to); return { ok: true, via: 'smtp' }; })
       .catch(async (e) => {
         console.log('Email send failed:', e.message);
@@ -1070,15 +1118,47 @@ app.post('/api/admin/send-setup', requireAuth, requireAdmin, async (req, res) =>
 
 // Is email actually able to reach members? Surfaced in the admin panel.
 app.get('/api/admin/email-config', requireAuth, requireAdmin, async (req, res) => {
-  const sandbox = /resend\.dev/i.test(EMAIL_FROM);
+  const sandbox = emailCfg.provider === 'resend' && /resend\.dev/i.test(emailCfg.from);
   res.json({
-    from: EMAIL_FROM,
-    provider: RESEND_API_KEY ? 'resend' : (transporter ? 'smtp' : 'none'),
+    provider: emailCfg.provider,
+    from: emailCfg.from,
     sandbox: sandbox,
+    hasBrevoKey: !!emailCfg.brevoKey,
+    hasResendKey: !!RESEND_API_KEY,
     note: sandbox
-      ? 'Resend is in test mode: it will only deliver to the address that owns the Resend account. Verify a domain at resend.com/domains and change EMAIL_FROM to an address on that domain.'
-      : 'Sending from a verified domain.'
+      ? 'Resend is in test mode: it will only deliver to the address that owns the Resend account. Switch to Brevo (a sender address is enough) or verify a domain.'
+      : (emailCfg.provider === 'none' ? 'No provider configured — nothing is being sent.' : 'Configured via ' + emailCfg.provider + '.')
   });
+});
+
+// Change the sender without touching environment variables or redeploying.
+app.get('/api/admin/email-settings', requireAuth, requireAdmin, (req, res) => {
+  res.json({
+    provider: emailCfg.provider,
+    from: emailCfg.from,
+    brevoKeyMasked: emailCfg.brevoKey ? '••••••' + emailCfg.brevoKey.slice(-4) : '',
+    available: { brevo: true, resend: !!RESEND_API_KEY, smtp: !!transporter }
+  });
+});
+
+app.post('/api/admin/email-settings', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const provider = ['brevo', 'resend', 'smtp', 'none'].includes(req.body.provider) ? req.body.provider : null;
+    if (!provider) return res.status(400).json({ error: 'Unknown provider' });
+    const from = String(req.body.from || '').trim();
+    if (provider !== 'none' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((from.match(/<([^>]+)>/) || [null, from])[1] || '')) {
+      return res.status(400).json({ error: 'A valid sender address is required' });
+    }
+    const key = String(req.body.brevoKey || '').trim();
+    if (provider === 'brevo' && !key && !emailCfg.brevoKey) return res.status(400).json({ error: 'A Brevo API key is required' });
+
+    await pool.query("INSERT INTO settings (key,value) VALUES ('email_provider',$1) ON CONFLICT (key) DO UPDATE SET value=$1", [provider]);
+    if (from) await pool.query("INSERT INTO settings (key,value) VALUES ('email_from',$1) ON CONFLICT (key) DO UPDATE SET value=$1", [from]);
+    if (key) await pool.query("INSERT INTO settings (key,value) VALUES ('brevo_key',$1) ON CONFLICT (key) DO UPDATE SET value=$1", [key]);
+    await loadEmailConfig();
+    await audit(req.user, 'email.settings', provider, from);
+    res.json({ ok: true, provider: emailCfg.provider, from: emailCfg.from });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // Admin: prove whether email delivery works, and see exactly what the provider says.
@@ -1087,7 +1167,7 @@ app.get('/api/admin/email-test', requireAuth, requireAdmin, async (req, res) => 
     const to = String(req.query.to || req.user.email);
     const r = await sendEmail(to, 'The Lotus Cross — delivery test',
       '<h2>✦ Test</h2><p>If you are reading this, delivery works.</p>');
-    res.json({ to, result: r, from: EMAIL_FROM, provider: RESEND_API_KEY ? 'resend' : (transporter ? 'smtp' : 'none') });
+    res.json({ to, result: r, from: emailCfg.from, provider: emailCfg.provider });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

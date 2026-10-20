@@ -191,11 +191,26 @@ footer p{font-size:.8rem;color:var(--muted)}
     </div>
 
     <div class="card" style="margin-bottom:1.2rem">
-      <div class="card-label">Email delivery</div>
-      <p style="color:var(--muted);font-size:.9rem;margin-bottom:.8rem">Sends a real message and reports exactly what the provider answers. If this fails, members will not receive approval or password emails.</p>
+      <div class="card-label">Email — provider and sender</div>
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:.9rem">Brevo verifies a single sender address, so it works <strong>without owning a domain</strong>. Resend needs a verified domain. Choose one, save, then send a test.</p>
+      <div style="display:grid;gap:.6rem;max-width:520px">
+        <select id="emProvider" style="padding:.6rem .8rem;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--text);border-radius:2px;font-family:inherit">
+          <option value="brevo">Brevo — sender address is enough (recommended for now)</option>
+          <option value="resend">Resend — requires a verified domain</option>
+          <option value="smtp">SMTP — Gmail / Yahoo app password</option>
+          <option value="none">None — do not send</option>
+        </select>
+        <input id="emFrom" placeholder="Sender: The Lotus Cross &lt;you@example.com&gt;" style="padding:.6rem .8rem;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--text);border-radius:2px">
+        <input id="emBrevoKey" placeholder="Brevo API key (xkeysib-…)" style="padding:.6rem .8rem;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--text);border-radius:2px">
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <button class="btn" onclick="saveEmailSettings()">Save</button>
+          <span id="emSaved" style="font-size:.82rem;color:var(--green);align-self:center"></span>
+        </div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:1rem 0">
       <div style="display:flex;gap:.5rem;flex-wrap:wrap">
         <input id="emailTestTo" placeholder="Send the test to…" style="padding:.6rem .8rem;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--text);border-radius:2px;min-width:220px">
-        <button class="btn" onclick="testEmail()">Send test</button>
+        <button class="btn-sm" onclick="testEmail()">Send test</button>
       </div>
       <div id="emailTestResult" style="margin-top:.8rem;font-size:.85rem;color:var(--muted)"></div>
     </div>
@@ -364,7 +379,35 @@ function closeProofModal(){
 }
 
 function loadSystem(){
-  load2fa(); loadAudit(); loadErrors(); loadEmailConfig();
+  load2fa(); loadAudit(); loadErrors(); loadEmailConfig(); loadEmailSettings();
+}
+function loadEmailSettings(){
+  api('/api/admin/email-settings').then(function(res){
+    if(!res.ok) return;
+    var sel = document.getElementById('emProvider');
+    if(sel) sel.value = res.d.provider || 'none';
+    var from = document.getElementById('emFrom');
+    if(from) from.value = res.d.from || '';
+    var key = document.getElementById('emBrevoKey');
+    if(key) key.placeholder = res.d.brevoKeyMasked ? ('Saved: ' + res.d.brevoKeyMasked + ' — paste a new one to replace') : 'Brevo API key (xkeysib-…)';
+  });
+}
+function saveEmailSettings(){
+  var body = {
+    provider: document.getElementById('emProvider').value,
+    from: document.getElementById('emFrom').value.trim(),
+    brevoKey: document.getElementById('emBrevoKey').value.trim()
+  };
+  api('/api/admin/email-settings',{method:'POST',body:JSON.stringify(body)}).then(function(res){
+    var msg = document.getElementById('emSaved');
+    if(res.ok){
+      if(msg){ msg.textContent = 'Saved.'; setTimeout(function(){ msg.textContent=''; }, 3000); }
+      document.getElementById('emBrevoKey').value = '';
+      loadEmailSettings(); loadEmailConfig();
+    } else {
+      alert(res.d.error || 'Could not save.');
+    }
+  });
 }
 function loadEmailConfig(){
   api('/api/admin/email-config').then(function(res){
