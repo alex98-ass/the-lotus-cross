@@ -530,7 +530,7 @@ function loadDashboard(){
 }
 
 // ===== LEADERBOARD =====
-function renderLeaderboard(myId){
+function renderLeaderboard(myName){
   fetch('/api/leaderboard').then(function(r){ return r.json(); }).then(function(d){
     var box = document.getElementById('leaderboard');
     if(!box) return;
