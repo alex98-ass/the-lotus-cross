@@ -216,6 +216,7 @@ a{color:var(--gold-deep);text-decoration:none}
       <button class="side-btn" data-tab="community"><span class="ico">💬</span><span class="txt">Community</span></button>
       <button class="side-btn" data-tab="circle"><span class="ico">🪷</span><span class="txt">My Circle</span></button>
       <button class="side-btn" data-tab="forty"><span class="ico">🕯️</span><span class="txt">Forty Days</span></button>
+      <button class="side-btn" data-tab="archive"><span class="ico">📜</span><span class="txt">Archive</span></button>
       <a href="shop.html" class="side-btn" style="text-decoration:none"><span class="ico">🛍️</span><span class="txt">Shop</span></a>
       <button class="side-btn" data-tab="support"><span class="ico">💎</span><span class="txt">Support Us</span></button>
       <div class="spacer"></div>
@@ -285,6 +286,14 @@ a{color:var(--gold-deep);text-decoration:none}
         <div class="tasks-head">The Forty Days</div>
         <p class="tasks-sub">One practice a day, for forty days. This is the whole programme — there is nothing else to buy or unlock.</p>
         <div id="fortyBody"></div>
+      </section>
+
+      <!-- ARCHIVE -->
+      <section id="view-archive" class="view">
+        <div class="tasks-head">The Lotus Archive</div>
+        <p class="tasks-sub">Six texts, twelve weeks, one portion a week. Free public-domain translations — no purchase, no unlock.</p>
+        <div id="archivePlan" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.9rem;margin:1.5rem 0"></div>
+        <p style="margin-top:1.2rem"><a href="archive.html" class="cta-btn" style="text-decoration:none">Open the Archive →</a></p>
       </section>
 
       <!-- MY CIRCLE -->
@@ -431,6 +440,7 @@ function switchTab(tab){
   else stopChatPolling();
   if(tab === 'circle') loadCircle();
   if(tab === 'forty') loadForty();
+  if(tab === 'archive') renderArchivePlan();
 }
 
 // ===== MY CIRCLE (rank 5 Stewards) =====
@@ -632,6 +642,33 @@ function loadForty(){
     if(!res.ok) return;
     renderChallenge(res.d, 'fortyBody');
   });
+}
+
+// ===== ARCHIVE =====
+var ARCHIVE_PLAN = [
+  ['Week 1','Dhammapada 1–2','Which verse describes a mind I recognise as mine?'],
+  ['Week 2','Imitation, Book I 1–3','Where am I performing rather than practising?'],
+  ['Week 3','Gita 1–2','What is my duty when I would rather withdraw?'],
+  ['Week 4','Cloud of Unknowing 1–3','What do I keep thinking about instead of praying?'],
+  ['Week 5','Tao 1–10','What would doing less look like this week?'],
+  ['Week 6','Dhammapada 3–4','What am I clinging to that has already gone?'],
+  ['Week 7','Imitation, Book II','What comfort am I unwilling to give up?'],
+  ['Week 8','Gita 3–4','Where does my action come from — fear or offering?'],
+  ['Week 9','Isa Upanishad','What would change if everything were already sacred?'],
+  ['Week 10','Tao 11–20','Which emptiness am I afraid of?'],
+  ['Week 11','Katha Upanishad','What would I do differently if this year were the last?'],
+  ['Week 12','Gita 12, then return','What has changed, and what was I only pretending to change?']
+];
+function renderArchivePlan(){
+  var box = document.getElementById('archivePlan');
+  if(!box || box.dataset.done) return;
+  box.innerHTML = ARCHIVE_PLAN.map(function(w){
+    return '<div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem">'+
+      '<div style="font-size:.68rem;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold-deep);margin-bottom:.25rem">'+w[0]+'</div>'+
+      '<div style="font-family:\'Cormorant Garamond\',serif;font-size:1.1rem;margin-bottom:.25rem">'+w[1]+'</div>'+
+      '<div style="font-size:.82rem;color:var(--muted);font-style:italic">'+w[2]+'</div></div>';
+  }).join('');
+  box.dataset.done = '1';
 }
 
 // ===== LEADERBOARD =====
