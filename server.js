@@ -201,17 +201,19 @@ async function initDb() {
     console.log('  Default tasks seeded.');
   }
   // Seed the ladder of outward practices (from the 10th practice onward, with photo evidence)
-  const pc = await pool.query("SELECT COUNT(*)::int AS c FROM tasks WHERE requires_proof = true");
-  if (pc.rows[0].c === 0) {
-    let i = 0;
-    for (const p of PRACTICES) {
+  // Insert any practice that is not in the database yet, so the ladder can grow safely.
+  let added = 0;
+  for (let i = 0; i < PRACTICES.length; i++) {
+    const p = PRACTICES[i];
+    const exists = await pool.query("SELECT 1 FROM tasks WHERE title=$1 LIMIT 1", [p.title]);
+    if (exists.rowCount === 0) {
       await pool.query(
         "INSERT INTO tasks (title, description, category, xp, sort_order, min_count, requires_proof, proof_hint) VALUES ($1,$2,$3,$4,$5,$6,true,$7)",
         [p.title, p.desc, 'service', p.xp, 10 + i, p.min, p.hint]);
-      i++;
+      added++;
     }
-    console.log('  Ladder of practices seeded (' + PRACTICES.length + ').');
   }
+  if (added) console.log('  Practices added to the ladder: ' + added);
   await loadEmailConfig();
   // Seed/refresh daily reflections — upsert so new entries extend the cycle
   for (let i = 0; i < REFLECTIONS.length; i++) {
