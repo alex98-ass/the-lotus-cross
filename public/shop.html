@@ -320,7 +320,15 @@ document.querySelectorAll('[data-wait]').forEach(function(b){
   // Safety net: if the observer never fires (old browser, odd embedding, instant load),
   // the page must still be readable. Never ship invisible content.
   setTimeout(function(){
-    if(!fired){ els.forEach(function(e){ e.classList.add('in'); }); }
+    if(!fired){
+      els.forEach(function(e){
+        e.classList.add('in');
+        // Belt and braces: force the final state inline, so a throttled or
+        // paused renderer can never leave the page invisible.
+        e.style.opacity = '1';
+        e.style.transform = 'none';
+      });
+    }
   }, 1500);
 })();
 </script>
