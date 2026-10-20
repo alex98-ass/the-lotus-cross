@@ -597,15 +597,16 @@ function entitled(u, need) { return tierRank(u) >= (TIER_ORDER[need] || 0); }
 // Every gated item in the portal, in one place, so the rules cannot drift apart.
 // minRank refers to the practice ranks (0–5); need refers to the plan.
 const FEATURES = [
-  { key: 'today',     label: "Today's reflection", need: 'free',      minRank: 0 },
-  { key: 'tasks',     label: 'Daily practices',    need: 'free',      minRank: 0 },
-  { key: 'community', label: 'The community',      need: 'free',      minRank: 0 },
-  { key: 'forty',     label: 'The Forty Days',     need: 'free',      minRank: 0 },
-  { key: 'archive',   label: 'The Archive',        need: 'free',      minRank: 0 },
-  { key: 'live',      label: 'Live gatherings',    need: 'supporter', minRank: 0 },
-  { key: 'library',   label: 'The Library',        need: 'supporter', minRank: 0 },
-  { key: 'circle',    label: 'Steward a circle',   need: 'circle',    minRank: 5 },
-  { key: 'guidance',  label: 'Quarterly guidance', need: 'circle',    minRank: 2 }
+  { key: 'today',      label: "Today's reflection", need: 'free',      minRank: 0 },
+  { key: 'tasks',      label: 'Daily practices',    need: 'free',      minRank: 0 },
+  { key: 'community',  label: 'The community',      need: 'free',      minRank: 0 },
+  { key: 'forty',      label: 'The Forty Days',     need: 'free',      minRank: 0 },
+  { key: 'reading',    label: 'The reading room',   need: 'supporter', minRank: 0 },
+  { key: 'live',       label: 'Live gatherings',    need: 'supporter', minRank: 0 },
+  { key: 'library',    label: 'The Library',        need: 'supporter', minRank: 0 },
+  { key: 'scriptorium',label: 'The Scriptorium',    need: 'circle',    minRank: 0 },
+  { key: 'guidance',   label: 'Quarterly guidance', need: 'circle',    minRank: 2 },
+  { key: 'circle',     label: 'Steward a circle',   need: 'circle',    minRank: 5 }
 ];
 
 function entitlementsFor(u) {
@@ -725,6 +726,47 @@ app.get('/api/cron/daily-legacy', async (req, res) => {
       sent++;
     }
     res.json({ ok: true, sent: sent, reflection: r.title, date: todayKey() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== THE READING ROOM (Supporter and above) =====
+const READING_PLAN = [
+  ['Week 1',  'Dhammapada 1–2',            'Which verse describes a mind I recognise as mine?'],
+  ['Week 2',  'Imitation, Book I 1–3',     'Where am I performing rather than practising?'],
+  ['Week 3',  'Gita 1–2',                  'What is my duty when I would rather withdraw?'],
+  ['Week 4',  'Cloud of Unknowing 1–3',    'What do I keep thinking about instead of praying?'],
+  ['Week 5',  'Tao 1–10',                  'What would doing less look like this week?'],
+  ['Week 6',  'Dhammapada 3–4',            'What am I clinging to that has already gone?'],
+  ['Week 7',  'Imitation, Book II',        'What comfort am I unwilling to give up?'],
+  ['Week 8',  'Gita 3–4',                  'Where does my action come from — fear or offering?'],
+  ['Week 9',  'Isa Upanishad',             'What would change if everything were already sacred?'],
+  ['Week 10', 'Tao 11–20',                 'Which emptiness am I afraid of?'],
+  ['Week 11', 'Katha Upanishad',           'What would I do differently if this year were the last?'],
+  ['Week 12', 'Gita 12, then return',      'What has changed, and what was I only pretending to change?']
+];
+
+app.get('/api/member/reading', requireAuth, async (req, res) => {
+  try {
+    if (!entitled(req.user, 'supporter')) {
+      return res.status(403).json({ error: 'The reading room is part of the Supporter plan.', need: 'supporter' });
+    }
+    res.json({ plan: READING_PLAN });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== THE SCRIPTORIUM (Circle only) =====
+app.get('/api/member/scriptorium', requireAuth, async (req, res) => {
+  try {
+    if (!entitled(req.user, 'circle')) {
+      return res.status(403).json({ error: 'The Scriptorium is part of the Circle plan.', need: 'circle' });
+    }
+    const items = [
+      { title: 'Karma and grace — the argument', kind: 'Notes', note: 'Six pages on why we hold both, without collapsing one into the other.' },
+      { title: 'The Cloud and the Void', kind: 'Notes', note: 'Where The Cloud of Unknowing and Zen say the same thing, and where they do not.' },
+      { title: 'Reading the Gita without a battle', kind: 'Audio', note: 'Forty minutes, on why the battlefield is your kitchen.' },
+      { title: 'Marginalia', kind: 'Letters', note: 'The notes I made in the margins over four years of reading.' }
+    ];
+    res.json({ items: items });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

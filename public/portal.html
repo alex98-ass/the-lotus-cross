@@ -211,16 +211,17 @@ a{color:var(--gold-deep);text-decoration:none}
   <div class="app">
     <aside class="sidebar">
       <a href="mission.html" class="brand">The <em>Lotus</em> Cross</a>
-      <button class="side-btn active" data-tab="dashboard"><span class="ico">🏛️</span><span class="txt">Dashboard</span></button>
-      <button class="side-btn" data-tab="tasks"><span class="ico">🧘</span><span class="txt">Daily Tasks</span></button>
-      <button class="side-btn" data-tab="community"><span class="ico">💬</span><span class="txt">Community</span></button>
-      <button class="side-btn" data-tab="circle"><span class="ico">🪷</span><span class="txt">My Circle</span></button>
-      <button class="side-btn" data-tab="forty"><span class="ico">🕯️</span><span class="txt">Forty Days</span></button>
-      <button class="side-btn" data-tab="archive"><span class="ico">📜</span><span class="txt">Archive</span></button>
-      <button class="side-btn" data-tab="live"><span class="ico">🎥</span><span class="txt">Live</span></button>
-      <button class="side-btn" data-tab="library"><span class="ico">📚</span><span class="txt">Library</span></button>
+      <button class="side-btn active" data-tab="dashboard" data-feature="today"><span class="ico">🏛️</span><span class="txt">Today</span></button>
+      <button class="side-btn" data-tab="tasks" data-feature="tasks"><span class="ico">🧘</span><span class="txt">Practices</span></button>
+      <button class="side-btn" data-tab="forty" data-feature="forty"><span class="ico">🕯️</span><span class="txt">Forty Days</span></button>
+      <button class="side-btn" data-tab="community" data-feature="community"><span class="ico">💬</span><span class="txt">Community</span></button>
+      <button class="side-btn" data-tab="archive" data-feature="reading"><span class="ico">📜</span><span class="txt">Reading room</span></button>
+      <button class="side-btn" data-tab="live" data-feature="live"><span class="ico">🎥</span><span class="txt">Live</span></button>
+      <button class="side-btn" data-tab="library" data-feature="library"><span class="ico">📚</span><span class="txt">Library</span></button>
+      <button class="side-btn" data-tab="scriptorium" data-feature="scriptorium"><span class="ico">🖋️</span><span class="txt">Scriptorium</span></button>
+      <button class="side-btn" data-tab="circle" data-feature="circle"><span class="ico">🪷</span><span class="txt">My Circle</span></button>
       <a href="shop.html" class="side-btn" style="text-decoration:none"><span class="ico">🛍️</span><span class="txt">Shop</span></a>
-      <button class="side-btn" data-tab="support"><span class="ico">💎</span><span class="txt">Support Us</span></button>
+      <button class="side-btn" id="unlockBtn" onclick="openPlans()"><span class="ico">✦</span><span class="txt">Unlock more</span></button>
       <div class="spacer"></div>
       <button class="logout" id="logoutBtn"><span class="ico">⎋</span><span class="txt">Sign Out</span></button>
     </aside>
@@ -230,7 +231,6 @@ a{color:var(--gold-deep);text-decoration:none}
       <section id="view-dashboard" class="view active">
         <div class="dash-greet">Peace, <em id="dashName">traveller</em>.</div>
         <p class="dash-sub">Continue your journey. Every step matters.</p>
-        <p class="dash-sub" id="planBadge" style="margin-bottom:1rem;font-size:.82rem"></p>
         <div class="quote-card" id="challengeCard" style="display:none;margin-bottom:1.5rem"></div>
         <div class="quote-card">
           <div class="q-label" id="reflTitle">Reflection of the Day</div>
@@ -311,6 +311,13 @@ a{color:var(--gold-deep);text-decoration:none}
         <div class="tasks-head">The Library</div>
         <p class="tasks-sub">Printable sheets, the monthly letter, and the recordings. Supporter plan.</p>
         <div id="libraryBody"></div>
+      </section>
+
+      <!-- SCRIPTORIUM -->
+      <section id="view-scriptorium" class="view">
+        <div class="tasks-head">The Scriptorium</div>
+        <p class="tasks-sub">Notes, marginalia and audio for the Circle — the reading behind the readings.</p>
+        <div id="scriptoriumBody"></div>
       </section>
 
       <!-- MY CIRCLE -->
@@ -460,44 +467,56 @@ function switchTab(tab){
   if(tab === 'archive') renderArchivePlan();
   if(tab === 'live') loadLive();
   if(tab === 'library') loadLibrary();
+  if(tab === 'scriptorium') loadScriptorium();
 }
 
-// ===== PLANS AND LOCKS =====
+// ===== PLANS: show only what a person can actually use =====
 var myFeatures = {};
-function planLabel(tier){
-  if(tier === 'circle') return 'Circle plan · £9.99 / month';
-  if(tier === 'supporter') return 'Supporter plan · £5 / month';
-  return 'Seeker plan · free, forever';
-}
-function renderPlan(tier, tiers){
-  var el = document.getElementById('planBadge');
-  if(!el) return;
-  el.innerHTML = '<span style="display:inline-block;padding:.25rem .7rem;border-radius:999px;border:1px solid var(--line);background:var(--card)">' +
-    planLabel(tier) + '</span>';
-}
-function applyLocks(features){
+
+function applyPlan(features){
   myFeatures = {};
   (features || []).forEach(function(f){ myFeatures[f.key] = f; });
-  document.querySelectorAll('.side-btn[data-tab]').forEach(function(b){
-    var f = myFeatures[b.dataset.tab];
-    var label = b.querySelector('.txt');
-    if(!label) return;
-    var base = label.textContent.replace(/\s*🔒$/, '');
-    if(f && !f.unlocked){ label.textContent = base + ' 🔒'; b.dataset.locked = '1'; b.style.opacity = '.72'; }
-    else { label.textContent = base; delete b.dataset.locked; b.style.opacity = ''; }
+
+  var anyHidden = false;
+  document.querySelectorAll('.side-btn[data-feature]').forEach(function(b){
+    var f = myFeatures[b.dataset.feature];
+    var unlocked = !f || f.unlocked;
+    b.style.display = unlocked ? '' : 'none';
+    if(!unlocked) anyHidden = true;
+  });
+
+  // If the tab you were on has disappeared, go back to Today.
+  var active = document.querySelector('.side-btn.active[data-feature]');
+  if(active && active.style.display === 'none') switchTab('dashboard');
+
+  var unlock = document.getElementById('unlockBtn');
+  if(unlock) unlock.style.display = anyHidden ? '' : 'none';
+}
+
+function openPlans(){
+  document.getElementById('plansModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+function closePlans(){
+  document.getElementById('plansModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closePlans(); });
+
+function loadScriptorium(){
+  var box = document.getElementById('scriptoriumBody');
+  box.innerHTML = '<p style="color:var(--muted)">Loading…</p>';
+  api('/api/member/scriptorium').then(function(res){
+    if(!res.ok){ box.innerHTML = '<p style="color:var(--muted)">' + (res.d.error || 'Not available.') + '</p>'; return; }
+    box.innerHTML = (res.d.items || []).map(function(i){
+      return '<div class="quote-card" style="margin-bottom:.9rem;display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap">' +
+        '<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:1.2rem">' + i.title + '</div>' +
+        '<div style="color:var(--muted);font-size:.85rem">' + i.note + '</div></div>' +
+        '<span style="font-size:.72rem;letter-spacing:1px;text-transform:uppercase;color:var(--gold-deep);border:1px solid var(--line);padding:.25rem .6rem;border-radius:6px">' + i.kind + '</span></div>';
+    }).join('');
   });
 }
-function upsellInto(elId, need, why){
-  var el = document.getElementById(elId);
-  if(!el) return;
-  var price = need === 'circle' ? '£9.99 a month' : '£5 a month';
-  el.innerHTML = '<div class="quote-card">' +
-    '<div class="q-label">Part of the ' + (need === 'circle' ? 'Circle' : 'Supporter') + ' plan</div>' +
-    '<blockquote>' + why + '</blockquote>' +
-    '<p style="color:var(--muted);font-size:.9rem;margin:.8rem 0 1.2rem">' + price + ', cancel whenever you like. Everything essential stays free — this is extra, not a wall.</p>' +
-    '<a href="index.html#membership" class="cta-btn" style="text-decoration:none">See the plans →</a>' +
-    '</div>';
-}
+
 function loadLive(){
   var box = document.getElementById('liveBody');
   if(myFeatures.live && !myFeatures.live.unlocked){
@@ -662,8 +681,7 @@ function loadDashboard(){
     }
     renderLeaderboard(u.name);
     renderChallenge(res.d.challenge);
-    renderPlan(res.d.tier || 'free', res.d.tiers);
-    applyLocks(res.d.features);
+    applyPlan(res.d.features);
     var b = res.d.brought || {total:0, approved:0};
     var inv = document.getElementById('inviteLine');
     if(u.referral_code){
@@ -748,30 +766,23 @@ function loadForty(){
 }
 
 // ===== ARCHIVE =====
-var ARCHIVE_PLAN = [
-  ['Week 1','Dhammapada 1–2','Which verse describes a mind I recognise as mine?'],
-  ['Week 2','Imitation, Book I 1–3','Where am I performing rather than practising?'],
-  ['Week 3','Gita 1–2','What is my duty when I would rather withdraw?'],
-  ['Week 4','Cloud of Unknowing 1–3','What do I keep thinking about instead of praying?'],
-  ['Week 5','Tao 1–10','What would doing less look like this week?'],
-  ['Week 6','Dhammapada 3–4','What am I clinging to that has already gone?'],
-  ['Week 7','Imitation, Book II','What comfort am I unwilling to give up?'],
-  ['Week 8','Gita 3–4','Where does my action come from — fear or offering?'],
-  ['Week 9','Isa Upanishad','What would change if everything were already sacred?'],
-  ['Week 10','Tao 11–20','Which emptiness am I afraid of?'],
-  ['Week 11','Katha Upanishad','What would I do differently if this year were the last?'],
-  ['Week 12','Gita 12, then return','What has changed, and what was I only pretending to change?']
-];
 function renderArchivePlan(){
   var box = document.getElementById('archivePlan');
   if(!box || box.dataset.done) return;
-  box.innerHTML = ARCHIVE_PLAN.map(function(w){
-    return '<div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem">'+
-      '<div style="font-size:.68rem;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold-deep);margin-bottom:.25rem">'+w[0]+'</div>'+
-      '<div style="font-family:\'Cormorant Garamond\',serif;font-size:1.1rem;margin-bottom:.25rem">'+w[1]+'</div>'+
-      '<div style="font-size:.82rem;color:var(--muted);font-style:italic">'+w[2]+'</div></div>';
-  }).join('');
-  box.dataset.done = '1';
+  box.innerHTML = '<p style="color:var(--muted)">Loading…</p>';
+  api('/api/member/reading').then(function(res){
+    if(!res.ok){
+      box.innerHTML = '<p style="color:var(--muted)">' + (res.d.error || 'Not available.') + '</p>';
+      return;
+    }
+    box.innerHTML = (res.d.plan || []).map(function(w){
+      return '<div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem">' +
+        '<div style="font-size:.68rem;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold-deep);margin-bottom:.25rem">' + w[0] + '</div>' +
+        '<div style="font-family:\'Cormorant Garamond\',serif;font-size:1.1rem;margin-bottom:.25rem">' + w[1] + '</div>' +
+        '<div style="font-size:.82rem;color:var(--muted);font-style:italic">' + w[2] + '</div></div>';
+    }).join('');
+    box.dataset.done = '1';
+  });
 }
 
 // ===== LEADERBOARD =====
@@ -955,5 +966,35 @@ function enterPortal(){
 <script>
 if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); }); }
 </script>
+<div id="plansModal" style="display:none;position:fixed;inset:0;background:rgba(20,18,15,.72);z-index:500;padding:1.5rem;overflow:auto">
+  <div style="max-width:760px;margin:3rem auto;background:var(--card);border-radius:18px;padding:2rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1.2rem">
+      <h2 style="font-family:'Cormorant Garamond',serif;font-weight:500;font-size:1.7rem">What more looks like</h2>
+      <button onclick="closePlans()" style="background:none;border:1px solid var(--line);border-radius:999px;width:38px;height:38px;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem" id="plansGrid">
+      <div style="border:1px solid var(--line);border-radius:14px;padding:1.2rem">
+        <div style="font-size:.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold-deep)">Supporter · £5 / month</div>
+        <ul style="list-style:none;margin:.8rem 0 0;font-size:.9rem;color:var(--muted)">
+          <li style="padding:.25rem 0">✦ The reading room — twelve weeks, one portion a week</li>
+          <li style="padding:.25rem 0">✦ Live gathering each month</li>
+          <li style="padding:.25rem 0">✦ The Library — printable sheets, the monthly letter, recordings</li>
+        </ul>
+      </div>
+      <div style="border:1px solid var(--gold);border-radius:14px;padding:1.2rem">
+        <div style="font-size:.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold-deep)">Circle · £9.99 / month</div>
+        <ul style="list-style:none;margin:.8rem 0 0;font-size:.9rem;color:var(--muted)">
+          <li style="padding:.25rem 0">✦ Everything in Supporter</li>
+          <li style="padding:.25rem 0">✦ The Scriptorium — notes, marginalia, audio</li>
+          <li style="padding:.25rem 0">✦ A one-to-one every quarter</li>
+          <li style="padding:.25rem 0">✦ Licence to steward a circle, once you are a Steward</li>
+        </ul>
+      </div>
+    </div>
+    <p style="font-size:.8rem;color:var(--muted);margin-top:1rem">Nothing essential is behind these. The reflection, the practices, the community and the forty days stay free for as long as this exists.</p>
+    <p style="margin-top:1rem"><a href="index.html#membership" style="display:inline-block;background:var(--ink);color:#fff;padding:.75rem 1.4rem;border-radius:999px;text-decoration:none;font-size:.85rem;font-weight:600">See the plans →</a></p>
+  </div>
+</div>
+
 </body>
 </html>
