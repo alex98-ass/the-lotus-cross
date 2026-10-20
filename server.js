@@ -593,7 +593,7 @@ app.post('/api/interest', async (req, res) => {
   try {
     const email = String(req.body.email || '').toLowerCase().trim();
     const name = String(req.body.name || '').slice(0, 120);
-    const tier = ['free', 'supporter', 'circle'].includes(req.body.tier) ? req.body.tier : 'supporter';
+    const tier = ['free', 'supporter', 'circle', 'shop'].includes(req.body.tier) ? req.body.tier : 'supporter';
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'A valid email is required' });
     await pool.query(
       `INSERT INTO interest (name, email, tier, note) VALUES ($1,$2,$3,$4)

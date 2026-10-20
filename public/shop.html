@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Shop — The Lotus Cross</title>
+<meta name="description" content="A small shelf for the practice: a written guide, objects made to order, and the books and teas we actually use.">
+<meta name="theme-color" content="#faf8f4">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta property="og:title" content="The Shop — The Lotus Cross">
+<meta property="og:description" content="A guide, objects made to order, and the shelf we actually use.">
+<meta property="og:image" content="/icon-512.png">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600&family=Inter:wght@300;400;500;600&display=swap');
+:root{--bg:#faf8f4;--card:#fff;--ink:#221f1a;--muted:#6f6a60;--gold:#a8842a;--gold-deep:#8a6a1f;--gold-light:#e9d9a8;--line:#ece6db;--shadow:0 10px 40px rgba(60,45,10,.06)}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased}
+nav{position:sticky;top:0;z-index:100;padding:1.1rem 2rem;display:flex;justify-content:space-between;align-items:center;background:rgba(250,248,244,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+nav .logo{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:600;color:var(--ink);text-decoration:none;letter-spacing:.5px}
+nav .logo em{color:var(--gold);font-style:normal}
+nav .links{display:flex;gap:1.4rem;align-items:center;flex-wrap:wrap}
+nav .links a{color:var(--muted);text-decoration:none;font-size:.85rem;letter-spacing:.4px}
+nav .links a:hover{color:var(--gold-deep)}
+nav .btn-nav{background:var(--ink);color:#fff;padding:.55rem 1.2rem;border-radius:999px;font-size:.82rem;font-weight:600;text-decoration:none}
+header.hero{padding:5rem 1.5rem 3rem;text-align:center;max-width:760px;margin:0 auto}
+header.hero .kicker{font-size:.75rem;text-transform:uppercase;letter-spacing:3px;color:var(--gold-deep);margin-bottom:1.2rem}
+header.hero h1{font-family:'Cormorant Garamond',serif;font-size:2.9rem;font-weight:400;line-height:1.15;margin-bottom:1rem}
+header.hero h1 em{color:var(--gold);font-style:italic}
+header.hero p{color:var(--muted);font-size:1.05rem}
+main{max-width:1080px;margin:0 auto;padding:1rem 1.5rem 5rem}
+.section-head{margin:3.5rem 0 1.8rem;border-bottom:1px solid var(--line);padding-bottom:.9rem;display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap}
+.section-head h2{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:500}
+.section-head span{color:var(--muted);font-size:.82rem;letter-spacing:.6px;text-transform:uppercase}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1.4rem}
+.item{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1.5rem;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.item .thumb{height:118px;border-radius:10px;margin-bottom:1.1rem;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--gold-deep);background:linear-gradient(135deg,#f6efdd,#efe4c9)}
+.item h3{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:500;margin-bottom:.3rem}
+.item .desc{color:var(--muted);font-size:.88rem;flex:1}
+.item .price{font-family:'Cormorant Garamond',serif;font-size:1.5rem;color:var(--gold-deep);margin:.9rem 0 .8rem}
+.item .price small{font-family:'Inter',sans-serif;font-size:.72rem;color:var(--muted);letter-spacing:.5px}
+.item .cta{display:block;text-align:center;padding:.7rem 1rem;border-radius:9px;border:1px solid var(--gold);background:none;color:var(--gold-deep);font-size:.82rem;font-weight:600;letter-spacing:.4px;cursor:pointer;text-decoration:none;font-family:inherit;transition:all .25s}
+.item .cta:hover{background:var(--gold);color:#fff}
+.item .cta.solid{background:var(--gold);color:#fff}
+.item .cta.solid:hover{background:var(--gold-deep)}
+.item .meta{font-size:.72rem;color:var(--muted);margin-top:.6rem;text-align:center;letter-spacing:.3px}
+.note{background:#fff;border:1px solid var(--line);border-left:3px solid var(--gold);padding:1.1rem 1.3rem;border-radius:8px;margin:2.5rem 0;font-size:.9rem;color:#3c3831}
+.note strong{color:var(--ink)}
+.fine{color:var(--muted);font-size:.8rem;line-height:1.7;margin-top:2.5rem;border-top:1px solid var(--line);padding-top:1.5rem}
+footer{padding:2.5rem 1.5rem;text-align:center;border-top:1px solid var(--line);color:var(--muted);font-size:.82rem}
+footer a{color:var(--gold-deep);text-decoration:none;margin:0 .4rem}
+@media(max-width:600px){header.hero h1{font-size:2.1rem}nav{padding:.9rem 1rem}nav .links{gap:.9rem}}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">The <em>Lotus</em> Cross</a>
+  <div class="links">
+    <a href="index.html#paths">The Paths</a>
+    <a href="shop.html">Shop</a>
+    <a href="mission.html">Mission</a>
+    <a href="index.html#membership">Membership</a>
+    <a href="portal.html" class="btn-nav">Login</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="kicker">The Shop</div>
+  <h1>Things for the practice — <em>and nothing you don't need</em></h1>
+  <p>One written guide. A few objects made to order. And the shelf of books and teas we actually use, bought from the people who make them.</p>
+</header>
+
+<main>
+
+  <div class="section-head">
+    <h2>Written by us</h2>
+    <span>Instant download</span>
+  </div>
+  <div class="grid">
+    <div class="item">
+      <div class="thumb">🪷</div>
+      <h3>The Red Lotus Way</h3>
+      <p class="desc">A 21-day guide: one practice a day, drawn from Christian, Buddhist and Hindu sources, with space to write. 20 pages, PDF.</p>
+      <div class="price">£9.99 <small>one payment</small></div>
+      <a class="cta solid" href="#" data-product="red-lotus-guide">Buy the guide</a>
+      <div class="meta">Instant download · yours to keep</div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <h2>Made to order</h2>
+    <span>No stock, no waste</span>
+  </div>
+  <div class="grid">
+    <div class="item">
+      <div class="thumb">📓</div>
+      <h3>The Practice Journal</h3>
+      <p class="desc">Ninety days of ruled pages with a single line at the top: <em>what did I notice today?</em> Made when you order it.</p>
+      <div class="price">£18 <small>+ postage</small></div>
+      <button class="cta" data-wait="journal">Tell me when it's ready</button>
+      <div class="meta">Printed and posted by our print partner</div>
+    </div>
+    <div class="item">
+      <div class="thumb">✦</div>
+      <h3>Three Paths — print set</h3>
+      <p class="desc">Three archival prints: the cross, the wheel, the lotus. Designed to hang together, not to decorate a wall you don't look at.</p>
+      <div class="price">£22 <small>set of three</small></div>
+      <button class="cta" data-wait="prints">Tell me when it's ready</button>
+      <div class="meta">A3, unbleached paper</div>
+    </div>
+    <div class="item">
+      <div class="thumb">🕯️</div>
+      <h3>The Evening Candle</h3>
+      <p class="desc">Beeswax, unscented, forty hours. For the evening practice — nothing to smell, nothing to sell you a mood.</p>
+      <div class="price">£14 <small>+ postage</small></div>
+      <button class="cta" data-wait="candle">Tell me when it's ready</button>
+      <div class="meta">Made in small batches</div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <h2>The shelf</h2>
+    <span>Bought from the makers</span>
+  </div>
+  <div class="grid">
+    <div class="item">
+      <div class="thumb">☕</div>
+      <h3>Quiet tea</h3>
+      <p class="desc">A loose-leaf green and a chamomile we keep by the kettle. Bought directly from a small UK merchant — we earn a few pence if you buy through us.</p>
+      <div class="price">~£9 <small>their price</small></div>
+      <a class="cta" href="#" data-aff="tea" target="_blank" rel="noopener">See the tea</a>
+      <div class="meta">Sold and shipped by the merchant</div>
+    </div>
+    <div class="item">
+      <div class="thumb">📖</div>
+      <h3>Living Buddha, Living Christ</h3>
+      <p class="desc">Thich Nhat Hanh. The book that made this community possible. If you read one thing from the shelf, this.</p>
+      <div class="price">~£10 <small>their price</small></div>
+      <a class="cta" href="#" data-aff="book-nhat-hanh" target="_blank" rel="noopener">See the book</a>
+      <div class="meta">Bookshop or Amazon</div>
+    </div>
+    <div class="item">
+      <div class="thumb">📖</div>
+      <h3>New Seeds of Contemplation</h3>
+      <p class="desc">Thomas Merton. Hard, honest, and free of comfort. Read a page a day, not more.</p>
+      <div class="price">~£11 <small>their price</small></div>
+      <a class="cta" href="#" data-aff="book-merton" target="_blank" rel="noopener">See the book</a>
+      <div class="meta">Bookshop or Amazon</div>
+    </div>
+    <div class="item">
+      <div class="thumb">🕉️</div>
+      <h3>The Bhagavad Gita</h3>
+      <p class="desc">Eknath Easwaran's translation — the clearest one for a first reading, and the one we quote.</p>
+      <div class="price">~£9 <small>their price</small></div>
+      <a class="cta" href="#" data-aff="book-gita" target="_blank" rel="noopener">See the book</a>
+      <div class="meta">Bookshop or Amazon</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>What we deliberately do not sell.</strong> No teas blended by us, no supplements, no "energy" products. Anything you eat or drink has to be registered as a food business, labelled for allergens and tracked for shelf life — that is a real trade with real rules, and a shop with two customers is not the place to learn it. The tea on the shelf comes from a merchant who already does that properly.
+  </div>
+
+  <p class="fine">
+    Objects are made to order by a print partner and posted within 5–7 working days. Digital products are non-refundable once downloaded, except where the law says otherwise. Prices include VAT where applicable. Nothing here is a substitute for medical or psychological care.
+    Questions: <a href="mailto:hello@thelotuscross.org">hello@thelotuscross.org</a>
+  </p>
+</main>
+
+<footer>
+  <p>✦ The Lotus Cross — One community. Three spiritual paths.</p>
+  <p style="margin-top:.4rem"><a href="index.html">Home</a><a href="mission.html">Mission</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="cookies.html">Cookies</a></p>
+</footer>
+
+<script>
+// Where the money actually goes. Replace these when the accounts exist:
+//   RED_LOTUS_URL  -> your Gumroad product URL
+//   AFFILIATE      -> your Amazon Associates / merchant links with your tag
+var RED_LOTUS_URL = '';           // e.g. 'https://gumroad.com/l/red-lotus-way'
+var AFFILIATE = {
+  'tea': '',
+  'book-nhat-hanh': '',
+  'book-merton': '',
+  'book-gita': ''
+};
+
+function message(text, kind){
+  var el = document.getElementById('shopMsg');
+  if(!el){
+    el = document.createElement('p');
+    el.id = 'shopMsg';
+    el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:1.4rem;padding:.8rem 1.4rem;border-radius:10px;font-size:.9rem;z-index:200;box-shadow:0 8px 30px rgba(0,0,0,.15)';
+    document.body.appendChild(el);
+  }
+  el.style.background = kind === 'bad' ? '#fdecec' : '#eef6f0';
+  el.style.color = kind === 'bad' ? '#a33' : '#2f6b3a';
+  el.textContent = text;
+  clearTimeout(window.__msgT);
+  window.__msgT = setTimeout(function(){ el.remove(); }, 6000);
+}
+
+document.querySelectorAll('[data-product]').forEach(function(a){
+  a.addEventListener('click', function(e){
+    if(!RED_LOTUS_URL){
+      e.preventDefault();
+      message('The checkout is being connected. Join the list below and you will be told first.', 'ok');
+    } else { a.href = RED_LOTUS_URL; }
+  });
+});
+
+document.querySelectorAll('[data-aff]').forEach(function(a){
+  var key = a.getAttribute('data-aff');
+  if(AFFILIATE[key]){ a.href = AFFILIATE[key]; }
+  else { a.addEventListener('click', function(e){ e.preventDefault(); message('The shelf links are being set up — nothing to buy yet.', 'ok'); }); }
+});
+
+document.querySelectorAll('[data-wait]').forEach(function(b){
+  b.addEventListener('click', function(){
+    var item = b.getAttribute('data-wait');
+    var email = prompt('Leave your email and we will tell you when the ' + item + ' is ready:');
+    if(!email) return;
+    fetch('/api/interest', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email: email, tier: 'shop', note: item })
+    }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); })
+      .then(function(res){
+        if(res.ok){ message('Noted. You are number ' + res.d.position + ' on the list.', 'ok'); b.textContent = 'On the list ✓'; }
+        else { message(res.d.error || 'Something went wrong.', 'bad'); }
+      })
+      .catch(function(){ message('Network error. Please try again.', 'bad'); });
+  });
+});
+</script>
+<script src="/authnav.js"></script>
+</body>
+</html>
